@@ -1123,9 +1123,11 @@ main().catch(console.error);
             setStatus('请先部署合约', 'error');
             return null;
         }
-        // 生成相对路径链接，同目录下打开 mint-ui.html 并自动填充合约地址
+        // 获取当前选择的网络
+        const network = document.getElementById('network').value;
+        // 生成相对路径链接，同目录下打开 mint-ui.html 并自动填充合约地址和网络
         const basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        return basePath + 'mint-ui.html?contract=' + addr;
+        return basePath + 'mint-ui.html?contract=' + addr + '&network=' + network;
     }
 
     function openMintPage() {

@@ -1435,8 +1435,9 @@
             setStatus('请先加载合约', 'error');
             return null;
         }
+        const network = document.getElementById('network') ? document.getElementById('network').value : '97';
         const basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        return basePath + 'mint-ui.html?contract=' + tokenAddr;
+        return basePath + 'mint-ui.html?contract=' + tokenAddr + '&network=' + network;
     }
 
     function openMintPage() {

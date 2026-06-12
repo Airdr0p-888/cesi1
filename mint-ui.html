@@ -77,7 +77,17 @@
             font-family: monospace;
             transition: border-color 0.3s;
         }
-        .input-group input:focus {
+        .input-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+            background: white;
+            cursor: pointer;
+        }
+        .input-group select:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -187,6 +197,34 @@
             border: 2px solid #667eea;
         }
         .btn-outline:hover { background: #667eea; color: white; }
+        .wallet-select {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .wallet-select-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .wallet-select-btn:hover { border-color: #667eea; background: #f8f9ff; }
+        .wallet-select-btn.active { border-color: #667eea; background: #f0f2ff; color: #667eea; }
+        .wallet-detect-info {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 12px;
+        }
         .loading {
             display: inline-block;
             width: 16px;
@@ -213,6 +251,22 @@
 
         <!-- 第一步：输入合约地址（无 URL 参数时显示） -->
         <div id="setupPanel">
+            <div class="wallet-detect-info" id="walletDetectInfo"></div>
+            <div class="wallet-select" id="walletSelectGroup">
+                <button class="wallet-select-btn active" id="walletMM" onclick="selectWallet('metamask')">
+                    🦊 MetaMask
+                </button>
+                <button class="wallet-select-btn" id="walletTW" onclick="selectWallet('trustwallet')">
+                    🛡️ Trust Wallet
+                </button>
+            </div>
+            <div class="input-group">
+                <label>网络</label>
+                <select id="networkSelect" onchange="onNetworkChange()">
+                    <option value="97" selected>BSC 测试网 (Testnet)</option>
+                    <option value="56">BSC 主网 (Mainnet)</option>
+                </select>
+            </div>
             <div class="input-group">
                 <label>合约地址</label>
                 <input type="text" id="contractInput" placeholder="0x..." 
@@ -225,6 +279,22 @@
 
         <!-- 有 URL 参数时直接显示连接按钮（无需手动输入） -->
         <div id="quickConnectPanel" style="display:none;">
+            <div class="wallet-detect-info" id="quickWalletDetectInfo"></div>
+            <div class="wallet-select" id="quickWalletSelectGroup">
+                <button class="wallet-select-btn active" id="quickWalletMM" onclick="selectWallet('metamask')">
+                    🦊 MetaMask
+                </button>
+                <button class="wallet-select-btn" id="quickWalletTW" onclick="selectWallet('trustwallet')">
+                    🛡️ Trust Wallet
+                </button>
+            </div>
+            <div class="input-group">
+                <label>网络</label>
+                <select id="quickNetworkSelect" onchange="onNetworkChange()">
+                    <option value="97" selected>BSC 测试网 (Testnet)</option>
+                    <option value="56">BSC 主网 (Mainnet)</option>
+                </select>
+            </div>
             <div style="background:#f0f4ff; border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#555; word-break:break-all;">
                 <span style="color:#888;">合约地址</span><br>
                 <span id="contractDisplay" style="font-family:monospace; color:#667eea;"></span>
@@ -239,6 +309,7 @@
             <div class="wallet-info">
                 <div>
                     <span style="color:#888;">钱包</span><br>
+                    <span id="walletType" style="font-size:12px; color:#667eea;"></span>
                     <span id="walletAddress" class="wallet-address"></span>
                 </div>
                 <div style="text-align:right;">
@@ -280,12 +351,17 @@
             <button class="btn btn-secondary" onclick="refreshInfo()">
                 🔄 刷新
             </button>
+            <button class="btn btn-outline" id="switchNetBtn" onclick="switchNetwork()" style="display:none;">
+                🔄 切换到 <span id="switchNetName"></span>
+            </button>
         </div>
     </div>
 
     <script>
         let provider, signer, contract, userAddress;
         let currentChainId = null;
+        let selectedWallet = 'metamask'; // 默认选择 MetaMask
+        let activeEthereum = null; // 实际使用的 ethereum provider
 
         // BSC 网络配置
         const BSC_NETWORKS = {
@@ -306,9 +382,94 @@
             "function symbol() view returns (string)"
         ];
 
-        // 从 URL 参数自动填充合约地址
+        // ============ 钱包检测与选择 ============
+        function detectWallets() {
+            const setupInfo = document.getElementById('walletDetectInfo');
+            const quickInfo = document.getElementById('quickWalletDetectInfo');
+            
+            if (typeof window.ethereum === 'undefined') {
+                const msg = '⚠️ 未检测到钱包扩展，请安装 MetaMask 或 Trust Wallet';
+                if (setupInfo) setupInfo.textContent = msg;
+                if (quickInfo) quickInfo.textContent = msg;
+                return;
+            }
+
+            // 检测是否同时安装了多个钱包
+            const hasProviders = window.ethereum.providers && window.ethereum.providers.length > 1;
+            const hasMM = window.ethereum.providers 
+                ? window.ethereum.providers.some(p => p.isMetaMask)
+                : window.ethereum.isMetaMask;
+            const hasTW = window.ethereum.providers 
+                ? window.ethereum.providers.some(p => p.isTrust || p.isTrustWallet)
+                : (window.ethereum.isTrust || window.ethereum.isTrustWallet);
+
+            if (hasProviders) {
+                const detected = [];
+                if (hasMM) detected.push('🦊 MetaMask');
+                if (hasTW) detected.push('🛡️ Trust Wallet');
+                const msg = '检测到多个钱包：' + detected.join('、') + '，请选择要使用的钱包';
+                if (setupInfo) setupInfo.textContent = msg;
+                if (quickInfo) quickInfo.textContent = msg;
+                // 显示选择按钮
+                document.getElementById('walletSelectGroup').style.display = 'flex';
+                document.getElementById('quickWalletSelectGroup').style.display = 'flex';
+            } else {
+                // 只有一个钱包，隐藏选择按钮
+                const walletName = hasMM ? 'MetaMask' : hasTW ? 'Trust Wallet' : '已连接钱包';
+                const msg = '✅ 检测到钱包：' + walletName;
+                if (setupInfo) setupInfo.textContent = msg;
+                if (quickInfo) quickInfo.textContent = msg;
+                document.getElementById('walletSelectGroup').style.display = 'none';
+                document.getElementById('quickWalletSelectGroup').style.display = 'none';
+                // 自动选择检测到的钱包
+                if (hasTW) selectedWallet = 'trustwallet';
+            }
+
+            // 更新选择按钮高亮
+            updateWalletBtns();
+        }
+
+        // 选择钱包
+        function selectWallet(type) {
+            selectedWallet = type;
+            updateWalletBtns();
+        }
+
+        // 更新钱包选择按钮高亮
+        function updateWalletBtns() {
+            const mmBtns = [document.getElementById('walletMM'), document.getElementById('quickWalletMM')];
+            const twBtns = [document.getElementById('walletTW'), document.getElementById('quickWalletTW')];
+            mmBtns.forEach(btn => { if (btn) btn.className = 'wallet-select-btn' + (selectedWallet === 'metamask' ? ' active' : ''); });
+            twBtns.forEach(btn => { if (btn) btn.className = 'wallet-select-btn' + (selectedWallet === 'trustwallet' ? ' active' : ''); });
+        }
+
+        // 获取指定钱包的 provider
+        function getWalletProvider() {
+            if (typeof window.ethereum === 'undefined') return null;
+
+            // 如果有 providers 数组（多钱包共存），根据选择获取
+            if (window.ethereum.providers && window.ethereum.providers.length > 1) {
+                if (selectedWallet === 'metamask') {
+                    const mm = window.ethereum.providers.find(p => p.isMetaMask);
+                    if (mm) return mm;
+                } else if (selectedWallet === 'trustwallet') {
+                    const tw = window.ethereum.providers.find(p => p.isTrust || p.isTrustWallet);
+                    if (tw) return tw;
+                }
+            }
+
+            // 只有一个钱包，直接用 window.ethereum
+            return window.ethereum;
+        }
+
+        // 初始化钱包检测
+        detectWallets();
+
+        // 从 URL 参数自动填充合约地址和网络
         (function() {
-            const addr = new URLSearchParams(window.location.search).get('contract');
+            const params = new URLSearchParams(window.location.search);
+            const addr = params.get('contract');
+            const net = params.get('network'); // 97=testnet, 56=mainnet
             if (addr) {
                 document.getElementById('contractInput').value = addr;
                 document.getElementById('contractDisplay').textContent = addr;
@@ -316,6 +477,10 @@
                 document.getElementById('setupPanel').style.display = 'none';
                 document.getElementById('quickConnectPanel').style.display = 'block';
             }
+            // 设置网络选择（URL 参数优先）
+            const netValue = net || '97';
+            document.getElementById('networkSelect').value = netValue;
+            document.getElementById('quickNetworkSelect').value = netValue;
         })();
 
         function showStatus(msg, type) {
@@ -328,8 +493,27 @@
             document.getElementById('status').style.display = 'none';
         }
 
+        // 获取当前选择的网络
+        function getSelectedNetwork() {
+            const quickSel = document.getElementById('quickNetworkSelect');
+            const setupSel = document.getElementById('networkSelect');
+            // 哪个可见就用哪个
+            if (quickSel && quickSel.closest('div').style.display !== 'none' && quickSel.offsetParent !== null) {
+                return parseInt(quickSel.value);
+            }
+            return parseInt(setupSel.value);
+        }
+
+        // 网络选择变化时，同步两个选择器
+        function onNetworkChange() {
+            const val = getSelectedNetwork();
+            document.getElementById('networkSelect').value = val;
+            document.getElementById('quickNetworkSelect').value = val;
+        }
+
         async function startConnect() {
-            if (!window.ethereum) {
+            const ethereumProvider = getWalletProvider();
+            if (!ethereumProvider) {
                 showStatus('请安装 MetaMask 或 Trust Wallet', 'error');
                 return;
             }
@@ -347,9 +531,11 @@
 
             try {
                 showStatus('正在连接钱包...', 'info');
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                // 使用选定的钱包 provider
+                activeEthereum = ethereumProvider;
+                await activeEthereum.request({ method: 'eth_requestAccounts' });
 
-                provider = new ethers.providers.Web3Provider(window.ethereum);
+                provider = new ethers.providers.Web3Provider(activeEthereum);
                 signer = provider.getSigner();
                 userAddress = await signer.getAddress();
 
@@ -357,21 +543,30 @@
                 const network = await provider.getNetwork();
                 currentChainId = Number(network.chainId);
 
-                // 如果不在 BSC 网络，尝试自动切换到 BSC 测试网
-                if (currentChainId !== 56 && currentChainId !== 97) {
-                    showStatus('当前不在 BSC 网络，正在切换到 BSC 测试网...', 'warning');
-                    const switched = await switchToBSC(97);
+                // 获取用户选择的网络
+                const selectedChainId = getSelectedNetwork();
+
+                // 如果当前网络与选择不匹配，切换到用户选择的网络
+                if (currentChainId !== selectedChainId) {
+                    const targetName = BSC_NETWORKS[selectedChainId] ? BSC_NETWORKS[selectedChainId].name : 'BSC';
+                    showStatus('正在切换到 ' + targetName + '...', 'warning');
+                    const switched = await switchToBSC(selectedChainId);
                     if (!switched) {
-                        showStatus('请手动将钱包网络切换到 BSC 测试网或主网后重试', 'error');
+                        showStatus('切换网络失败，请在钱包中手动切换到 ' + targetName + ' 后重试', 'error');
                         btn.disabled = false;
                         btn.textContent = originalText;
                         return;
                     }
                     // 切换后重新获取 provider
-                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    provider = new ethers.providers.Web3Provider(activeEthereum);
                     signer = provider.getSigner();
                     const newNetwork = await provider.getNetwork();
                     currentChainId = Number(newNetwork.chainId);
+                }
+
+                // 最终检查：是否在 BSC 网络上
+                if (currentChainId !== 56 && currentChainId !== 97) {
+                    showStatus('⚠️ 当前不在 BSC 网络，Mint 可能失败。请切换到 BSC 测试网或主网。', 'warning');
                 }
 
                 const contractAddr = ethers.utils.getAddress(addr); // 校验 checksum
@@ -379,6 +574,11 @@
 
                 document.getElementById('walletAddress').textContent =
                     userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+
+                // 显示使用的钱包类型
+                const walletLabel = activeEthereum.isMetaMask ? '🦊 MetaMask' : 
+                    (activeEthereum.isTrust || activeEthereum.isTrustWallet) ? '🛡️ Trust Wallet' : '🔗 钱包';
+                document.getElementById('walletType').textContent = walletLabel;
 
                 // 更新网络标识
                 updateNetworkBadge();
@@ -399,9 +599,10 @@
 
         // 切换到指定 BSC 网络
         async function switchToBSC(chainId) {
+            const eth = activeEthereum || window.ethereum;
             const chainHex = '0x' + chainId.toString(16);
             try {
-                await window.ethereum.request({
+                await eth.request({
                     method: 'wallet_switchEthereumChain',
                     params: [{ chainId: chainHex }]
                 });
@@ -411,7 +612,7 @@
                 if (err.code === 4902) {
                     try {
                         const net = BSC_NETWORKS[chainId];
-                        await window.ethereum.request({
+                        await eth.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
                                 chainId: chainHex,
@@ -441,16 +642,67 @@
                 badge.textContent = '⚠️ 非BSC网络';
                 badge.className = 'network-badge wrong';
             }
+            // 更新切换按钮
+            updateSwitchBtn();
+        }
+
+        // 更新网络切换按钮
+        function updateSwitchBtn() {
+            const btn = document.getElementById('switchNetBtn');
+            const nameSpan = document.getElementById('switchNetName');
+            if (!btn || !nameSpan) return;
+            const targetId = currentChainId === 97 ? 56 : 97;
+            const targetNet = BSC_NETWORKS[targetId];
+            if (targetNet && (currentChainId === 56 || currentChainId === 97)) {
+                btn.style.display = 'block';
+                nameSpan.textContent = targetNet.name;
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        // 切换 BSC 主网/测试网
+        async function switchNetwork() {
+            const targetId = currentChainId === 97 ? 56 : 97;
+            const targetNet = BSC_NETWORKS[targetId];
+            const btn = document.getElementById('switchNetBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>切换中...';
+            const switched = await switchToBSC(targetId);
+            if (switched) {
+                const eth = activeEthereum || window.ethereum;
+                provider = new ethers.providers.Web3Provider(eth);
+                signer = provider.getSigner();
+                const newNetwork = await provider.getNetwork();
+                currentChainId = Number(newNetwork.chainId);
+                if (contract) {
+                    contract = new ethers.Contract(contract.address, ABI, signer);
+                }
+                updateNetworkBadge();
+                try {
+                    await refreshInfo();
+                    hideStatus();
+                } catch (e) {
+                    showStatus('网络已切换，但加载合约失败，请确认合约在此网络上已部署', 'warning');
+                }
+            } else {
+                showStatus('切换网络失败，请在钱包中手动切换', 'error');
+            }
+            btn.disabled = false;
+            updateSwitchBtn();
         }
 
         // 监听钱包网络切换
-        if (window.ethereum) {
-            window.ethereum.on('chainChanged', async function(chainIdHex) {
+        (function() {
+            const eth = window.ethereum;
+            if (!eth) return;
+            eth.on('chainChanged', async function(chainIdHex) {
                 currentChainId = parseInt(chainIdHex, 16);
                 updateNetworkBadge();
                 // 网络切换后重新获取 provider 和刷新数据
                 if (provider && contract) {
-                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    const activeEth = activeEthereum || window.ethereum;
+                    provider = new ethers.providers.Web3Provider(activeEth);
                     signer = provider.getSigner();
                     contract = new ethers.Contract(contract.address, ABI, signer);
                     try {
@@ -460,7 +712,7 @@
                     }
                 }
             });
-        }
+        })();
 
         async function refreshInfo() {
             try {
