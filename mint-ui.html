@@ -91,6 +91,18 @@
             justify-content: space-between;
             align-items: center;
         }
+        .network-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .network-badge.testnet { background: #fff3e0; color: #e65100; }
+        .network-badge.mainnet { background: #e8f5e9; color: #2e7d32; }
+        .network-badge.wrong { background: #ffebee; color: #c62828; }
         .wallet-address {
             font-family: monospace;
             color: #667eea;
@@ -230,8 +242,9 @@
                     <span id="walletAddress" class="wallet-address"></span>
                 </div>
                 <div style="text-align:right;">
-                    <span style="color:#888;">BNB</span><br>
-                    <span id="bnbBalance" style="font-weight:600;">-</span>
+                    <span id="networkBadge" class="network-badge"></span><br>
+                    <span style="color:#888; font-size:12px;">BNB</span>
+                    <span id="bnbBalance" style="font-weight:600;"></span>
                 </div>
             </div>
 
@@ -272,6 +285,13 @@
 
     <script>
         let provider, signer, contract, userAddress;
+        let currentChainId = null;
+
+        // BSC 网络配置
+        const BSC_NETWORKS = {
+            56: { name: 'BSC 主网', symbol: 'BNB', rpc: 'https://bsc-dataseed.binance.org/', explorer: 'https://bscscan.com', chainName: 'BNB Smart Chain Mainnet' },
+            97: { name: 'BSC 测试网', symbol: 'tBNB', rpc: 'https://data-seed-prebsc-1-s1.binance.org:8545/', explorer: 'https://testnet.bscscan.com', chainName: 'BNB Smart Chain Testnet' }
+        };
 
         const ABI = [
             "function mint() payable",
@@ -320,8 +340,9 @@
                 return;
             }
 
-            const btn = document.getElementById('connectBtn');
+            const btn = document.getElementById('connectBtn') || document.getElementById('quickConnectBtn');
             btn.disabled = true;
+            const originalText = btn.textContent;
             btn.innerHTML = '<span class="loading"></span>连接中...';
 
             try {
@@ -332,11 +353,35 @@
                 signer = provider.getSigner();
                 userAddress = await signer.getAddress();
 
+                // 检测当前网络
+                const network = await provider.getNetwork();
+                currentChainId = Number(network.chainId);
+
+                // 如果不在 BSC 网络，尝试自动切换到 BSC 测试网
+                if (currentChainId !== 56 && currentChainId !== 97) {
+                    showStatus('当前不在 BSC 网络，正在切换到 BSC 测试网...', 'warning');
+                    const switched = await switchToBSC(97);
+                    if (!switched) {
+                        showStatus('请手动将钱包网络切换到 BSC 测试网或主网后重试', 'error');
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                        return;
+                    }
+                    // 切换后重新获取 provider
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner();
+                    const newNetwork = await provider.getNetwork();
+                    currentChainId = Number(newNetwork.chainId);
+                }
+
                 const contractAddr = ethers.utils.getAddress(addr); // 校验 checksum
                 contract = new ethers.Contract(contractAddr, ABI, signer);
 
                 document.getElementById('walletAddress').textContent =
                     userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+
+                // 更新网络标识
+                updateNetworkBadge();
 
                 // 切换面板
                 document.getElementById('setupPanel').style.display = 'none';
@@ -348,8 +393,73 @@
             } catch (err) {
                 showStatus('连接失败: ' + (err.reason || err.message), 'error');
                 btn.disabled = false;
-                btn.textContent = '连接钱包并加载';
+                btn.textContent = originalText;
             }
+        }
+
+        // 切换到指定 BSC 网络
+        async function switchToBSC(chainId) {
+            const chainHex = '0x' + chainId.toString(16);
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: chainHex }]
+                });
+                return true;
+            } catch (err) {
+                // 如果网络不存在，添加 BSC
+                if (err.code === 4902) {
+                    try {
+                        const net = BSC_NETWORKS[chainId];
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: chainHex,
+                                chainName: net.chainName,
+                                nativeCurrency: { name: net.symbol, symbol: net.symbol, decimals: 18 },
+                                rpcUrls: [net.rpc],
+                                blockExplorerUrls: [net.explorer]
+                            }]
+                        });
+                        return true;
+                    } catch (addErr) {
+                        return false;
+                    }
+                }
+                return false;
+            }
+        }
+
+        // 更新网络标识
+        function updateNetworkBadge() {
+            const badge = document.getElementById('networkBadge');
+            const net = BSC_NETWORKS[currentChainId];
+            if (net) {
+                badge.textContent = net.name;
+                badge.className = 'network-badge ' + (currentChainId === 97 ? 'testnet' : 'mainnet');
+            } else {
+                badge.textContent = '⚠️ 非BSC网络';
+                badge.className = 'network-badge wrong';
+            }
+        }
+
+        // 监听钱包网络切换
+        if (window.ethereum) {
+            window.ethereum.on('chainChanged', async function(chainIdHex) {
+                currentChainId = parseInt(chainIdHex, 16);
+                updateNetworkBadge();
+                // 网络切换后重新获取 provider 和刷新数据
+                if (provider && contract) {
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner();
+                    contract = new ethers.Contract(contract.address, ABI, signer);
+                    try {
+                        await refreshInfo();
+                    } catch (e) {
+                        showStatus('网络已切换，请刷新页面', 'warning');
+                    }
+                }
+            });
         }
 
         async function refreshInfo() {
@@ -405,6 +515,14 @@
 
         async function doMint() {
             try {
+                // Mint 前检查网络
+                const network = await provider.getNetwork();
+                const chainId = Number(network.chainId);
+                if (chainId !== 56 && chainId !== 97) {
+                    showStatus('⚠️ 当前不在 BSC 网络，请切换后再试', 'error');
+                    return;
+                }
+
                 const mintBtn = document.getElementById('mintBtn');
                 mintBtn.disabled = true;
                 mintBtn.innerHTML = '<span class="loading"></span>Mint 中...';
@@ -419,7 +537,24 @@
                 showStatus('🎉 Mint 成功！代币已到账', 'success');
                 await refreshInfo();
             } catch (err) {
-                showStatus('Mint 失败: ' + (err.reason || err.message), 'error');
+                let msg = err.reason || err.message || '未知错误';
+                // 更友好的错误提示
+                if (msg.includes('insufficient funds')) {
+                    msg = 'BNB 余额不足，请确保有足够的 BNB 支付 Mint 价格 + Gas 费';
+                } else if (msg.includes('Not in whitelist')) {
+                    msg = '不在白名单中，当前仅限白名单地址 Mint';
+                } else if (msg.includes('Already minted')) {
+                    msg = '您已经 Mint 过了，每个地址只能 Mint 一次';
+                } else if (msg.includes('All slots minted')) {
+                    msg = 'Mint 已满，所有份额已被 Mint';
+                } else if (msg.includes('Mint is not active')) {
+                    msg = 'Mint 未开启，请等待管理员开启';
+                } else if (msg.includes('Incorrect BNB amount')) {
+                    msg = '发送的 BNB 金额不正确';
+                } else if (msg.includes('user rejected')) {
+                    msg = '交易已取消';
+                }
+                showStatus('Mint 失败: ' + msg, 'error');
                 const mintBtn = document.getElementById('mintBtn');
                 mintBtn.disabled = false;
                 mintBtn.textContent = '💎 重试 Mint';
