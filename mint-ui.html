@@ -199,7 +199,7 @@
 
         <div id="status" class="status" style="display:none;"></div>
 
-        <!-- 第一步：输入合约地址 -->
+        <!-- 第一步：输入合约地址（无 URL 参数时显示） -->
         <div id="setupPanel">
             <div class="input-group">
                 <label>合约地址</label>
@@ -208,6 +208,17 @@
             </div>
             <button class="btn btn-primary" id="connectBtn" onclick="startConnect()">
                 连接钱包并加载
+            </button>
+        </div>
+
+        <!-- 有 URL 参数时直接显示连接按钮（无需手动输入） -->
+        <div id="quickConnectPanel" style="display:none;">
+            <div style="background:#f0f4ff; border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#555; word-break:break-all;">
+                <span style="color:#888;">合约地址</span><br>
+                <span id="contractDisplay" style="font-family:monospace; color:#667eea;"></span>
+            </div>
+            <button class="btn btn-primary" id="quickConnectBtn" onclick="startConnect()">
+                💎 连接钱包参与 Mint
             </button>
         </div>
 
@@ -278,7 +289,13 @@
         // 从 URL 参数自动填充合约地址
         (function() {
             const addr = new URLSearchParams(window.location.search).get('contract');
-            if (addr) document.getElementById('contractInput').value = addr;
+            if (addr) {
+                document.getElementById('contractInput').value = addr;
+                document.getElementById('contractDisplay').textContent = addr;
+                // 有合约参数时，隐藏输入框，显示快捷连接按钮
+                document.getElementById('setupPanel').style.display = 'none';
+                document.getElementById('quickConnectPanel').style.display = 'block';
+            }
         })();
 
         function showStatus(msg, type) {
@@ -323,6 +340,7 @@
 
                 // 切换面板
                 document.getElementById('setupPanel').style.display = 'none';
+                document.getElementById('quickConnectPanel').style.display = 'none';
                 document.getElementById('mintInfo').style.display = 'block';
 
                 await refreshInfo();
