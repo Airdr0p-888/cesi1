@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FairMint Token 部署配置</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0b1e;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #00d4aa, #00b4d8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 0.95em;
+        }
+        .card {
+            background: #14152b;
+            border: 1px solid #2a2b45;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+        .card-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-title .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .icon-token { background: rgba(0,212,170,0.15); color: #00d4aa; }
+        .icon-mint { background: rgba(0,180,216,0.15); color: #00b4d8; }
+        .icon-tax { background: rgba(255,165,0,0.15); color: #ffa500; }
+        .icon-open { background: rgba(155,89,182,0.15); color: #9b59b6; }
+        .icon-deploy { background: rgba(46,204,113,0.15); color: #2ecc71; }
+        .icon-wallet { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group.full { grid-column: 1 / -1; }
+        label {
+            font-size: 0.85em;
+            color: #999;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        input, select {
+            background: #1a1b35;
+            border: 1px solid #2a2b45;
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #e0e0e0;
+            font-size: 0.95em;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        input:focus, select:focus {
+            border-color: #00d4aa;
+        }
+        input::placeholder { color: #555; }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .slider-group input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            background: #2a2b45;
+            border-radius: 3px;
+            outline: none;
+            border: none;
+            padding: 0;
+        }
+        .slider-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00d4aa;
+            cursor: pointer;
+        }
+        .slider-value {
+            min-width: 48px;
+            text-align: right;
+            font-weight: 600;
+            color: #00d4aa;
+        }
+
+        .open-mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .open-mode-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: #1a1b35;
+            border: 2px solid #2a2b45;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .open-mode-tab.active {
+            border-color: #00d4aa;
+            background: rgba(0,212,170,0.1);
+            color: #00d4aa;
+        }
+        .open-mode-tab:hover { border-color: #00d4aa55; }
+
+        .timed-config { display: none; margin-top: 12px; }
+        .timed-config.show { display: block; }
+
+        .preview-section {
+            background: #1a1b35;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+        .preview-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2b45;
+        }
+        .preview-row:last-child { border-bottom: none; }
+        .preview-label { color: #888; }
+        .preview-value { font-weight: 600; }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 8px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,212,170,0.3);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4aa, #00b4d8);
+            color: #0a0b1e;
+        }
+        .btn-wallet {
+            background: linear-gradient(135deg, #ff6b6b, #ffa500);
+            color: #fff;
+        }
+        .btn-deploy {
+            background: linear-gradient(135deg, #2ecc71, #00d4aa);
+            color: #0a0b1e;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .wallet-info {
+            background: #1a1b35;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+        .wallet-address {
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            color: #00d4aa;
+            word-break: break-all;
+        }
+        .wallet-balance {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 4px;
+        }
+        .wallet-network {
+            font-size: 0.85em;
+            color: #ffa500;
+            margin-top: 4px;
+        }
+
+        .whitelist-section { margin-top: 12px; }
+        .whitelist-section textarea {
+            width: 100%;
+            background: #1a1b35;
+            border: 1px solid #2a2b45;
+            border-radius: 10px;
+            padding: 12px;
+            color: #e0e0e0;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85em;
+            resize: vertical;
+            min-height: 80px;
+            outline: none;
+        }
+        .whitelist-section textarea:focus { border-color: #00d4aa; }
+        .whitelist-section textarea::placeholder { color: #555; }
+
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+        .toggle {
+            width: 48px;
+            height: 26px;
+            background: #2a2b45;
+            border-radius: 13px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.3s;
+        }
+        .toggle.active { background: #00d4aa; }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        .toggle.active::after { transform: translateX(22px); }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .summary-item {
+            background: #1a1b35;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+        .summary-item .number {
+            font-size: 1.8em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d4aa, #00b4d8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .summary-item .desc {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .status-bar {
+            background: #1a1b35;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+        .status-bar.show { display: block; }
+        .status-msg {
+            font-size: 0.9em;
+            line-height: 1.6;
+            word-break: break-all;
+        }
+        .status-success { color: #2ecc71; }
+        .status-error { color: #ff6b6b; }
+        .status-info { color: #00b4d8; }
+
+        .dividend-info {
+            margin-top: 16px;
+            background: #1a1b35;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 0.9em;
+            color: #888;
+            line-height: 1.7;
+        }
+        .dividend-info b { color: #e0e0e0; }
+        .dividend-info code {
+            background: #0d0e20;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #00d4aa;
+        }
+
+        @media (max-width: 640px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>FairMint Token 部署</h1>
+    <p class="subtitle">连接钱包，配置参数，一键部署到 BSC 链</p>
+
+    <!-- 钱包连接 -->
+    <div class="card">
+        <div class="card-title">
+            <div class="icon icon-wallet">&#x1F517;</div>
+            钱包连接
+        </div>
+        <button class="btn btn-wallet" id="connectWalletBtn" onclick="connectWallet()">
+            连接 MetaMask / Trust Wallet
+        </button>
+        <div class="wallet-info" id="walletInfo" style="display:none;">
+            <div>已连接地址：</div>
+            <div class="wallet-address" id="walletAddress"></div>
+            <div class="wallet-balance" id="walletBalance"></div>
+            <div class="wallet-network" id="walletNetwork"></div>
+        </div>
+    </div>
+
+    <!-- 代币基本信息 -->
+    <div class="card">
+        <div class="card-title">
+            <div class="icon icon-token">&#x1F3E6;</div>
+            代币基本信息
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>代币名称</label>
+                <input type="text" id="tokenName" value="FairMint Token" placeholder="e.g. My Token">
+            </div>
+            <div class="form-group">
+                <label>代币符号</label>
+                <input type="text" id="tokenSymbol" value="FMT" placeholder="e.g. MTK" maxlength="10">
+            </div>
+            <div class="form-group">
+                <label>代币总供应量</label>
+                <input type="number" id="totalSupply" value="1000000000" min="1" step="1">
+            </div>
+            <div class="form-group">
+                <label>总供应量单位</label>
+                <select id="supplyUnit">
+                    <option value="1">个</option>
+                    <option value="1000">千 (K)</option>
+                    <option value="1000000">百万 (M)</option>
+                    <option value="1000000000" selected>十亿 (B)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mint 配置 -->
+    <div class="card">
+        <div class="card-title">
+            <div class="icon icon-mint">&#x1F4B0;</div>
+            Mint 配置
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>每份 Mint 价格 (BNB)</label>
+                <input type="number" id="mintPrice" value="0.01" step="0.001" min="0.001">
+            </div>
+            <div class="form-group">
+                <label>Mint 总份数</label>
+                <input type="number" id="totalSlots" value="100" min="1" max="10000">
+            </div>
+            <div class="form-group full">
+                <div class="toggle-group">
+                    <label>启用白名单 Mint</label>
+                    <div class="toggle" id="whitelistToggle" onclick="toggleWhitelist()"></div>
+                </div>
+            </div>
+        </div>
+        <div class="whitelist-section" id="whitelistSection" style="display:none;">
+            <label>白名单地址 (每行一个)</label>
+            <textarea id="whitelistAddresses" placeholder="0x1234...&#10;0x5678...&#10;0x9abc..."></textarea>
+        </div>
+
+        <!-- Mint 概览 -->
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="number" id="totalSupplyDisplay">1B</div>
+                <div class="desc">代币总供应量</div>
+            </div>
+            <div class="summary-item">
+                <div class="number" id="mintPortionDisplay">500M</div>
+                <div class="desc">Mint 部分 (50%)</div>
+            </div>
+            <div class="summary-item">
+                <div class="number" id="perSlotDisplay">5M</div>
+                <div class="desc">每份获得代币</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 开盘模式 -->
+    <div class="card">
+        <div class="card-title">
+            <div class="icon icon-open">&#x1F4CA;</div>
+            开盘模式
+        </div>
+        <div class="open-mode-tabs">
+            <div class="open-mode-tab active" onclick="setOpenMode('auto', this)">自动开盘</div>
+            <div class="open-mode-tab" onclick="setOpenMode('manual', this)">手动开盘</div>
+            <div class="open-mode-tab" onclick="setOpenMode('timed', this)">定时开盘</div>
+        </div>
+        <div class="timed-config" id="timedConfig">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>开盘日期</label>
+                    <input type="date" id="openDate">
+                </div>
+                <div class="form-group">
+                    <label>开盘时间</label>
+                    <input type="time" id="openTime" value="12:00">
+                </div>
+            </div>
+        </div>
+        <div style="color:#888; font-size:0.85em; margin-top:8px;">
+            <span id="openModeDesc">Mint 完成后自动添加流动性并开盘</span>
+        </div>
+    </div>
+
+    <!-- 税收配置 -->
+    <div class="card">
+        <div class="card-title">
+            <div class="icon icon-tax">&#x1F525;</div>
+            税收配置
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>买入税</label>
+                <div class="slider-group">
+                    <input type="range" id="buyTax" min="0" max="10" step="0.5" value="5" oninput="updateTaxDisplay()">
+                    <span class="slider-value" id="buyTaxValue">5%</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>卖出税</label>
+                <div class="slider-group">
+                    <input type="range" id="sellTax" min="0" max="10" step="0.5" value="5" oninput="updateTaxDisplay()">
+                    <span class="slider-value" id="sellTaxValue">5%</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <label style="margin-bottom:8px; display:block;">税收分配 (合计 100%)</label>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>营销钱包</label>
+                    <div class="slider-group">
+                        <input type="range" id="marketingShare" min="0" max="100" value="40" oninput="updateTaxDist()">
+                        <span class="slider-value" id="marketingValue">40%</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>销毁</label>
+                    <div class="slider-group">
+                        <input type="range" id="burnShare" min="0" max="100" value="10" oninput="updateTaxDist()">
+                        <span class="slider-value" id="burnValue">10%</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>持币分红</label>
+                    <div class="slider-group">
+                        <input type="range" id="dividendShare" min="0" max="100" value="30" oninput="updateTaxDist()">
+                        <span class="slider-value" id="dividendValue">30%</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>回流 LP</label>
+                    <div class="slider-group">
+                        <input type="range" id="lpShare" min="0" max="100" value="20" oninput="updateTaxDist()">
+                        <span class="slider-value" id="lpValue">20%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:8px; color:#ff6b6b; font-size:0.85em; display:none;" id="taxDistError">
+            税收分配比例合计必须为 100%
+        </div>
+    </div>
+
+    <!-- 部署配置 -->
+    <div class="card">
+        <div class="card-title">
+            <div class="icon icon-deploy">&#x2699;</div>
+            部署配置
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>网络</label>
+                <select id="network" onchange="switchNetwork()">
+                    <option value="56">BSC 主网</option>
+                    <option value="97">BSC 测试网</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Router 地址</label>
+                <input type="text" id="routerAddress" value="0x10ED43C718714eb63d5aA57B78B54704E256024E">
+            </div>
+            <div class="form-group">
+                <label>营销钱包地址</label>
+                <input type="text" id="marketingWallet" placeholder="留空则使用部署者钱包地址">
+            </div>
+        </div>
+
+        <!-- 权限说明 -->
+        <div class="dividend-info">
+            <b>&#x26A0;&#xFE0F; 权限说明（测试阶段）</b><br>
+            &#x2022; 主合约 <b>Owner</b> = 部署者钱包<br>
+            &#x2022; 分红合约 <b>Admin</b> = 部署者钱包<br>
+            &#x2022; 主合约可提取 BNB 和任意代币：<code>rescueBNB()</code> <code>rescueToken()</code><br>
+            &#x2022; 分红合约可提取 BNB 和任意代币：<code>rescueBNB()</code> <code>rescueToken()</code><br>
+            &#x2022; 正式上线前可通过 <code>transferOwnership()</code> 转移权限
+        </div>
+    </div>
+
+    <!-- 预览与部署 -->
+    <div class="card">
+        <div class="card-title">&#x1F50D; 配置预览</div>
+        <div class="preview-section" id="previewSection"></div>
+
+        <button class="btn btn-deploy" id="deployBtn" onclick="deployContract()" disabled>
+            先连接钱包再部署
+        </button>
+
+        <div class="status-bar" id="statusBar">
+            <div class="status-msg" id="statusMsg"></div>
+        </div>
+
+        <!-- 部署结果 -->
+        <div id="deployResult" style="display:none; margin-top:16px;">
+            <div class="preview-section">
+                <div class="preview-row"><span class="preview-label">主合约地址</span><span class="preview-value" id="tokenAddr"></span></div>
+                <div class="preview-row"><span class="preview-label">分红合约地址</span><span class="preview-value" id="dividendAddr"></span></div>
+                <div class="preview-row"><span class="preview-label">LP 对地址</span><span class="preview-value" id="pairAddr"></span></div>
+            </div>
+            <div class="dividend-info" style="margin-top:12px;">
+                <b>&#x1F4CB; 部署后操作</b><br>
+                1. 开启 Mint：<code>setMintActive(true)</code><br>
+                2. 设置白名单（可选）：<code>setWhitelist([...], true)</code><br>
+                3. 手动开盘（MANUAL模式）：<code>enableTrading()</code><br>
+                4. 设置税收分配：<code>setTaxDistribution(营销%, 销毁%, 分红%, LP%)</code><br>
+                5. 紧急提取BNB：<code>rescueBNB(地址, 金额)</code><br>
+                6. 紧急提取代币：<code>rescueToken(代币地址, 接收地址, 金额)</code>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+<script>
+    let currentOpenMode = 'auto';
+    let whitelistEnabled = false;
+    let connectedAddress = null;
+    let provider, signer;
+
+    // ============ 钱包连接 ============
+
+    async function connectWallet() {
+        if (typeof window.ethereum === 'undefined') {
+            alert('请先安装 MetaMask 或 Trust Wallet 浏览器扩展！');
+            return;
+        }
+
+        try {
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            connectedAddress = await signer.getAddress();
+
+            // 更新UI
+            document.getElementById('connectWalletBtn').textContent = '已连接 ✓';
+            document.getElementById('connectWalletBtn').disabled = true;
+            document.getElementById('connectWalletBtn').style.opacity = '0.6';
+            document.getElementById('walletInfo').style.display = 'block';
+            document.getElementById('walletAddress').textContent = connectedAddress;
+            document.getElementById('deployBtn').disabled = false;
+            document.getElementById('deployBtn').textContent = '部署合约';
+
+            // 更新余额和网络
+            await updateWalletInfo();
+
+            // 监听账户和网络变化
+            window.ethereum.on('accountsChanged', () => window.location.reload());
+            window.ethereum.on('chainChanged', () => window.location.reload());
+
+        } catch (err) {
+            console.error('连接钱包失败:', err);
+            alert('连接钱包失败: ' + err.message);
+        }
+    }
+
+    async function updateWalletInfo() {
+        if (!provider || !connectedAddress) return;
+        const balance = await provider.getBalance(connectedAddress);
+        const network = await provider.getNetwork();
+
+        document.getElementById('walletBalance').textContent =
+            '余额: ' + ethers.utils.formatEther(balance) + ' BNB';
+
+        const chainNames = { 56: 'BSC 主网', 97: 'BSC 测试网' };
+        const chainName = chainNames[network.chainId] || ('Chain ID: ' + network.chainId);
+        document.getElementById('walletNetwork').textContent = '网络: ' + chainName;
+
+        // 如果当前网络与选择不匹配，提示切换
+        const selectedChainId = parseInt(document.getElementById('network').value);
+        if (network.chainId !== selectedChainId) {
+            document.getElementById('walletNetwork').textContent += ' (请切换网络!)';
+            document.getElementById('walletNetwork').style.color = '#ff6b6b';
+        }
+    }
+
+    async function switchNetwork() {
+        const chainId = parseInt(document.getElementById('network').value);
+
+        // 更新 Router 地址
+        if (chainId === 56) {
+            document.getElementById('routerAddress').value = '0x10ED43C718714eb63d5aA57B78B54704E256024E';
+        } else {
+            document.getElementById('routerAddress').value = '0xD99D1c33F9fC3444f8101754aBC4685d767e4074';
+        }
+
+        if (!window.ethereum) return;
+
+        const chainHex = '0x' + chainId.toString(16);
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: chainHex }]
+            });
+        } catch (err) {
+            // 如果网络不存在，添加 BSC
+            if (err.code === 4902) {
+                const params = chainId === 56 ? [{
+                    chainId: chainHex,
+                    chainName: 'BNB Smart Chain Mainnet',
+                    nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+                    rpcUrls: ['https://bsc-dataseed.binance.org/'],
+                    blockExplorerUrls: ['https://bscscan.com/']
+                }] : [{
+                    chainId: chainHex,
+                    chainName: 'BNB Smart Chain Testnet',
+                    nativeCurrency: { name: 'tBNB', symbol: 'tBNB', decimals: 18 },
+                    rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+                    blockExplorerUrls: ['https://testnet.bscscan.com/']
+                }];
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: params
+                });
+            }
+        }
+        await updateWalletInfo();
+    }
+
+    // ============ UI 辅助函数 ============
+
+    function formatNumber(n) {
+        if (n >= 1e9) return (n / 1e9).toFixed(n % 1e9 === 0 ? 0 : 1) + 'B';
+        if (n >= 1e6) return (n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1) + 'M';
+        if (n >= 1e3) return (n / 1e3).toFixed(n % 1e3 === 0 ? 0 : 1) + 'K';
+        return n.toString();
+    }
+
+    function getTotalSupplyRaw() {
+        const val = parseFloat(document.getElementById('totalSupply').value) || 1000000000;
+        const unit = parseInt(document.getElementById('supplyUnit').value);
+        return Math.floor(val * unit);
+    }
+
+    function updateMintDisplay() {
+        const totalSupply = getTotalSupplyRaw();
+        const slots = parseInt(document.getElementById('totalSlots').value) || 100;
+        const mintPortion = Math.floor(totalSupply * 0.5);
+        const perSlot = Math.floor(mintPortion / slots);
+
+        document.getElementById('totalSupplyDisplay').textContent = formatNumber(totalSupply);
+        document.getElementById('mintPortionDisplay').textContent = formatNumber(mintPortion);
+        document.getElementById('perSlotDisplay').textContent = formatNumber(perSlot);
+    }
+
+    function updateTaxDisplay() {
+        const buyTax = parseFloat(document.getElementById('buyTax').value);
+        const sellTax = parseFloat(document.getElementById('sellTax').value);
+        document.getElementById('buyTaxValue').textContent = buyTax + '%';
+        document.getElementById('sellTaxValue').textContent = sellTax + '%';
+        updatePreview();
+    }
+
+    function updateTaxDist() {
+        const m = parseInt(document.getElementById('marketingShare').value);
+        const b = parseInt(document.getElementById('burnShare').value);
+        const d = parseInt(document.getElementById('dividendShare').value);
+        const l = parseInt(document.getElementById('lpShare').value);
+        const total = m + b + d + l;
+
+        document.getElementById('marketingValue').textContent = m + '%';
+        document.getElementById('burnValue').textContent = b + '%';
+        document.getElementById('dividendValue').textContent = d + '%';
+        document.getElementById('lpValue').textContent = l + '%';
+
+        const error = document.getElementById('taxDistError');
+        if (total !== 100) {
+            error.style.display = 'block';
+            error.textContent = '税收分配比例合计为 ' + total + '%，必须为 100%';
+        } else {
+            error.style.display = 'none';
+        }
+        updatePreview();
+    }
+
+    function setOpenMode(mode, el) {
+        currentOpenMode = mode;
+        document.querySelectorAll('.open-mode-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+
+        const timedConfig = document.getElementById('timedConfig');
+        const desc = document.getElementById('openModeDesc');
+
+        if (mode === 'auto') {
+            timedConfig.classList.remove('show');
+            desc.textContent = 'Mint 完成后自动添加流动性并开盘';
+        } else if (mode === 'manual') {
+            timedConfig.classList.remove('show');
+            desc.textContent = 'Mint 完成后需手动调用 enableTrading() 开盘';
+        } else {
+            timedConfig.classList.add('show');
+            desc.textContent = 'Mint 完成后在设定时间自动开盘';
+        }
+        updatePreview();
+    }
+
+    function toggleWhitelist() {
+        whitelistEnabled = !whitelistEnabled;
+        const toggle = document.getElementById('whitelistToggle');
+        const section = document.getElementById('whitelistSection');
+        toggle.classList.toggle('active', whitelistEnabled);
+        section.style.display = whitelistEnabled ? 'block' : 'none';
+    }
+
+    function updatePreview() {
+        const name = document.getElementById('tokenName').value || 'MyToken';
+        const symbol = document.getElementById('tokenSymbol').value || 'MTK';
+        const mintPrice = document.getElementById('mintPrice').value || '0.01';
+        const slots = document.getElementById('totalSlots').value || '100';
+        const buyTax = document.getElementById('buyTax').value;
+        const sellTax = document.getElementById('sellTax').value;
+        const modeLabels = { auto: '自动开盘', manual: '手动开盘', timed: '定时开盘' };
+        const totalBNB = (parseFloat(mintPrice) * parseInt(slots)).toFixed(2);
+        const totalSupply = getTotalSupplyRaw();
+
+        document.getElementById('previewSection').innerHTML = `
+            <div class="preview-row"><span class="preview-label">代币</span><span class="preview-value">${name} (${symbol})</span></div>
+            <div class="preview-row"><span class="preview-label">总供应量</span><span class="preview-value">${formatNumber(totalSupply)}</span></div>
+            <div class="preview-row"><span class="preview-label">Mint 价格</span><span class="preview-value">${mintPrice} BNB / 份</span></div>
+            <div class="preview-row"><span class="preview-label">Mint 份数</span><span class="preview-value">${slots} 份</span></div>
+            <div class="preview-row"><span class="preview-label">每份代币</span><span class="preview-value">${formatNumber(Math.floor(totalSupply * 0.5 / parseInt(slots)))} ${symbol}</span></div>
+            <div class="preview-row"><span class="preview-label">Mint 总收入</span><span class="preview-value">${totalBNB} BNB</span></div>
+            <div class="preview-row"><span class="preview-label">底池代币</span><span class="preview-value">${formatNumber(totalSupply * 0.5)} ${symbol} (50%)</span></div>
+            <div class="preview-row"><span class="preview-label">买入/卖出税</span><span class="preview-value">${buyTax}% / ${sellTax}%</span></div>
+            <div class="preview-row"><span class="preview-label">开盘模式</span><span class="preview-value">${modeLabels[currentOpenMode]}</span></div>
+            <div class="preview-row"><span class="preview-label">白名单</span><span class="preview-value">${whitelistEnabled ? '已启用' : '未启用'}</span></div>
+            <div class="preview-row"><span class="preview-label">部署者</span><span class="preview-value">${connectedAddress ? connectedAddress.slice(0,6) + '...' + connectedAddress.slice(-4) : '未连接'}</span></div>
+        `;
+    }
+
+    function setStatus(msg, type) {
+        const bar = document.getElementById('statusBar');
+        const msgEl = document.getElementById('statusMsg');
+        bar.classList.add('show');
+        msgEl.className = 'status-msg status-' + type;
+        msgEl.innerHTML = msg;
+    }
+
+    // ============ 合约 ABI (仅构造函数) ============
+
+    const FAIRMINT_ABI = [
+        "constructor(string name, string symbol, uint256 mintPrice, uint256 totalMintSlots, uint256 totalSupply, address router, address marketingWallet, uint8 openMode, uint256 timedOpenTimestamp, uint256 buyTax, uint256 sellTax)",
+        "function dividendDistributor() view returns (address)",
+        "function uniswapV2Pair() view returns (address)"
+    ];
+
+    const FAIRMINT_BYTECODE = "0x__REPLACE_WITH_COMPILED_BYTECODE__";
+
+    // ============ 部署合约 ============
+
+    async function deployContract() {
+        if (!signer) {
+            alert('请先连接钱包！');
+            return;
+        }
+
+        // 验证税收分配
+        const m = parseInt(document.getElementById('marketingShare').value);
+        const b = parseInt(document.getElementById('burnShare').value);
+        const d = parseInt(document.getElementById('dividendShare').value);
+        const l = parseInt(document.getElementById('lpShare').value);
+        if (m + b + d + l !== 100) {
+            alert('税收分配比例合计必须为 100%！');
+            return;
+        }
+
+        // 验证定时开盘
+        if (currentOpenMode === 'timed') {
+            const date = document.getElementById('openDate').value;
+            if (!date) { alert('请选择开盘日期'); return; }
+        }
+
+        const deployBtn = document.getElementById('deployBtn');
+        deployBtn.disabled = true;
+        deployBtn.textContent = '部署中...';
+
+        try {
+            // 准备参数
+            const name = document.getElementById('tokenName').value || 'FairMint Token';
+            const symbol = document.getElementById('tokenSymbol').value || 'FMT';
+            const mintPrice = ethers.utils.parseEther(document.getElementById('mintPrice').value || '0.01');
+            const slots = parseInt(document.getElementById('totalSlots').value) || 100;
+            const totalSupply = ethers.utils.parseUnits(
+                (getTotalSupplyRaw()).toString(), 18
+            );
+            const router = document.getElementById('routerAddress').value;
+            const marketingWallet = document.getElementById('marketingWallet').value || connectedAddress;
+            const modeMap = { auto: 0, manual: 1, timed: 2 };
+            const openMode = modeMap[currentOpenMode];
+
+            let timedTimestamp = 0;
+            if (currentOpenMode === 'timed') {
+                const date = document.getElementById('openDate').value;
+                const time = document.getElementById('openTime').value || '12:00';
+                timedTimestamp = Math.floor(new Date(date + 'T' + time + ':00').getTime() / 1000);
+            }
+
+            const buyTax = Math.floor(parseFloat(document.getElementById('buyTax').value) * 100);
+            const sellTax = Math.floor(parseFloat(document.getElementById('sellTax').value) * 100);
+
+            setStatus('正在部署合约，请在钱包中确认交易...', 'info');
+
+            // 如果有编译后的字节码，直接部署；否则提示用命令行
+            if (FAIRMINT_BYTECODE === "0x__REPLACE_WITH_COMPILED_BYTECODE__") {
+                // 没有字节码，生成 Hardhat 命令行部署指令
+                generateHardhatDeploy({
+                    name, symbol, mintPrice, slots, totalSupply, router,
+                    marketingWallet, openMode, timedTimestamp, buyTax, sellTax
+                });
+                deployBtn.disabled = false;
+                deployBtn.textContent = '使用 Hardhat 部署';
+                return;
+            }
+
+            const factory = new ethers.ContractFactory(FAIRMINT_ABI, FAIRMINT_BYTECODE, signer);
+            const contract = await factory.deploy(
+                name, symbol, mintPrice, slots, totalSupply, router,
+                marketingWallet, openMode, timedTimestamp, buyTax, sellTax
+            );
+
+            setStatus('合约已提交，等待确认... Tx: ' + contract.deployTransaction.hash, 'info');
+            await contract.deployed();
+
+            // 获取分红合约和LP对地址
+            const dividendAddr = await contract.dividendDistributor();
+            const pairAddr = await contract.uniswapV2Pair();
+
+            document.getElementById('deployResult').style.display = 'block';
+            document.getElementById('tokenAddr').textContent = contract.address;
+            document.getElementById('dividendAddr').textContent = dividendAddr;
+            document.getElementById('pairAddr').textContent = pairAddr;
+
+            setStatus('部署成功！主合约: ' + contract.address, 'success');
+            deployBtn.textContent = '已部署 ✓';
+
+        } catch (err) {
+            console.error('部署失败:', err);
+            setStatus('部署失败: ' + (err.reason || err.message), 'error');
+            deployBtn.disabled = false;
+            deployBtn.textContent = '重新部署';
+        }
+    }
+
+    function generateHardhatDeploy(params) {
+        const cmd = `npx hardhat run scripts/deploy.js --network ${parseInt(document.getElementById('network').value) === 56 ? 'bsc' : 'bscTestnet'}`;
+
+        const deployScript = `// deploy.js
+const hre = require("hardhat");
+
+async function main() {
+    const [deployer] = await hre.ethers.getSigners();
+    console.log("Deploying with:", deployer.address);
+
+    const FairMintToken = await hre.ethers.getContractFactory("FairMintToken");
+    const token = await FairMintToken.deploy(
+        "${params.name}",                           // name
+        "${params.symbol}",                          // symbol
+        hre.ethers.parseEther("${ethers.utils.formatEther(params.mintPrice)}"),  // mintPrice
+        ${params.slots},                             // totalMintSlots
+        hre.ethers.parseEther("${ethers.utils.formatEther(params.totalSupply)}"), // totalSupply
+        "${params.router}",                          // router
+        "${params.marketingWallet}",                 // marketingWallet
+        ${params.openMode},                          // openMode: 0=AUTO, 1=MANUAL, 2=TIMED
+        ${params.timedTimestamp},                    // timedOpenTimestamp
+        ${params.buyTax},                            // buyTax (基点)
+        ${params.sellTax}                            // sellTax (基点)
+    );
+    await token.waitForDeployment();
+
+    const tokenAddr = await token.getAddress();
+    const dividendAddr = await token.dividendDistributor();
+    const pairAddr = await token.uniswapV2Pair();
+
+    console.log("FairMintToken:", tokenAddr);
+    console.log("DividendDistributor:", dividendAddr);
+    console.log("UniswapV2Pair:", pairAddr);
+}
+
+main().catch(console.error);
+`;
+
+        setStatus(
+            '<b>使用 Hardhat 命令行部署：</b><br><br>' +
+            '<code style="font-size:0.8em;white-space:pre-wrap;">' +
+            escapeHtml(deployScript) +
+            '</code><br><br>' +
+            '<b>运行命令：</b><br><code>' + cmd + '</code>', 'info');
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ============ 初始化 ============
+
+    updateMintDisplay();
+    updateTaxDisplay();
+    updateTaxDist();
+    updatePreview();
+
+    ['tokenName','tokenSymbol','mintPrice','totalSlots','totalSupply','supplyUnit'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            updateMintDisplay();
+            updatePreview();
+        });
+    });
+</script>
+</body>
+</html>
