@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FairMint - 公平发射平台</title>
+    <style>
+        * { margin:0; padding:0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+            max-width: 480px;
+            width: 100%;
+            padding: 50px 40px;
+            text-align: center;
+        }
+        .logo {
+            font-size: 64px;
+            margin-bottom: 10px;
+        }
+        h1 {
+            font-size: 32px;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            background: #f8f9fa;
+            border-radius: 16px;
+            text-decoration: none;
+            color: #1a1a2e;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .menu-item:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102,126,234,0.25);
+        }
+        .menu-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            flex-shrink: 0;
+        }
+        .icon-deploy { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .icon-admin  { background: linear-gradient(135deg, #f093fb, #f5576c); color: white; }
+        .icon-mint   { background: linear-gradient(135deg, #4facfe, #00f2fe); color: white; }
+        .menu-text {
+            text-align: left;
+            flex: 1;
+        }
+        .menu-title {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .menu-desc {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.4;
+        }
+        .menu-arrow {
+            font-size: 20px;
+            color: #ccc;
+            flex-shrink: 0;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚀</div>
+        <h1>FairMint</h1>
+        <div class="subtitle">BSC 链上公平发射平台<br>安全 · 透明 · 公平</div>
+
+        <div class="menu">
+            <a class="menu-item" href="deploy-ui.html">
+                <div class="menu-icon icon-deploy">🚀</div>
+                <div class="menu-text">
+                    <div class="menu-title">发射代币</div>
+                    <div class="menu-desc">部署 FairMint 智能合约到 BSC 链</div>
+                </div>
+                <div class="menu-arrow">›</div>
+            </a>
+
+            <a class="menu-item" href="admin-ui.html">
+                <div class="menu-icon icon-admin">⚙️</div>
+                <div class="menu-text">
+                    <div class="menu-title">管理代币</div>
+                    <div class="menu-desc">管理已部署的合约：税收、白名单、Mint 状态等</div>
+                </div>
+                <div class="menu-arrow">›</div>
+            </a>
+
+            <a class="menu-item" href="mint-ui.html">
+                <div class="menu-icon icon-mint">💎</div>
+                <div class="menu-text">
+                    <div class="menu-title">Mint 代币</div>
+                    <div class="menu-desc">参与 Mint：连接钱包，获取代币</div>
+                </div>
+                <div class="menu-arrow">›</div>
+            </a>
+        </div>
+
+        <div class="footer">
+            FairMint Token v1.0 &nbsp;|&nbsp;
+            <a href="https://github.com" target="_blank">GitHub</a> &nbsp;|&nbsp;
+            <a href="#" onclick="alert('联系方式：admin@fairmint.io')">联系支持</a>
+        </div>
+    </div>
+</body>
+</html>

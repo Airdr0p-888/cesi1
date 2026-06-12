@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FairMint - Mint 页面</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .status.warning {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .info-item {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.5);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .wallet-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .wallet-address {
+            font-family: monospace;
+            color: #667eea;
+            word-break: break-all;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 FairMint</h1>
+        <div class="subtitle">公平 Mint 代币</div>
+
+        <div id="status" class="status info">正在连接钱包...</div>
+
+        <div id="mintInfo" style="display: none;">
+            <div class="wallet-info">
+                <div>钱包地址: <span id="walletAddress" class="wallet-address"></span></div>
+                <div style="margin-top: 5px;">BNB 余额: <span id="bnbBalance"></span> BNB</div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Mint 价格</div>
+                    <div class="info-value" id="mintPrice">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">每份代币</div>
+                    <div class="info-value" id="mintCount">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">已 Mint</div>
+                    <div class="info-value" id="mintedSlots">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">总份数</div>
+                    <div class="info-value" id="totalSlots">-</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+            </div>
+            <div style="text-align: center; color: #666; margin-bottom: 20px;">
+                进度: <span id="progressText">0</span>%
+            </div>
+
+            <button class="btn btn-primary" id="connectBtn" onclick="connectWallet()" style="display: none;">
+                连接钱包
+            </button>
+            <button class="btn btn-primary" id="mintBtn" onclick="mint()" style="display: none;">
+                Mint (0.01 BNB)
+            </button>
+            <button class="btn btn-secondary" id="refreshBtn" onclick="refreshInfo()" style="display: none;">
+                刷新信息
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let provider, signer, contract, userAddress;
+        let contractAddress = new URLSearchParams(window.location.search).get('contract') || 
+                            prompt("请输入合约地址:", "");
+
+        const ABI = [
+            "function mint() payable",
+            "function mintActive() view returns (bool)",
+            "function mintPrice() view returns (uint256)",
+            "function mintCount() view returns (uint256)",
+            "function mintedSlots() view returns (uint256)",
+            "function totalMintSlots() view returns (uint256)",
+            "function hasMinted(address) view returns (bool)",
+            "function balanceOf(address) view returns (uint256)"
+        ];
+
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    showStatus("请安装 MetaMask 或 Trust Wallet", "error");
+                    return;
+                }
+
+                showStatus("正在连接钱包...", "info");
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                userAddress = await signer.getAddress();
+
+                if (!contractAddress) {
+                    showStatus("请输入合约地址", "error");
+                    return;
+                }
+
+                contract = new ethers.Contract(contractAddress, ABI, signer);
+
+                document.getElementById('walletAddress').textContent = 
+                    userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
+                
+                await refreshInfo();
+                document.getElementById('mintInfo').style.display = 'block';
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('mintBtn').style.display = 'block';
+                document.getElementById('refreshBtn').style.display = 'block';
+
+                showStatus("钱包连接成功！", "success");
+            } catch (error) {
+                showStatus("连接失败: " + error.message, "error");
+            }
+        }
+
+        async function refreshInfo() {
+            try {
+                const [mintActive, mintPrice, mintCount, mintedSlots, totalMintSlots, hasMinted, bnbBalance] = 
+                    await Promise.all([
+                        contract.mintActive(),
+                        contract.mintPrice(),
+                        contract.mintCount(),
+                        contract.mintedSlots(),
+                        contract.totalMintSlots(),
+                        contract.hasMinted(userAddress),
+                        provider.getBalance(userAddress)
+                    ]);
+
+                document.getElementById('mintPrice').textContent = 
+                    ethers.utils.formatEther(mintPrice) + " BNB";
+                document.getElementById('mintCount').textContent = 
+                    ethers.utils.formatEther(mintCount);
+                document.getElementById('mintedSlots').textContent = 
+                    mintedSlots.toString() + " / " + totalMintSlots.toString();
+                document.getElementById('totalSlots').textContent = totalMintSlots.toString();
+                document.getElementById('bnbBalance').textContent = 
+                    parseFloat(ethers.utils.formatEther(bnbBalance)).toFixed(4);
+
+                const progress = (mintedSlots * 100 / totalMintSlots).toString();
+                document.getElementById('progressFill').style.width = progress + "%";
+                document.getElementById('progressText').textContent = progress;
+
+                // 更新 mint 按钮
+                const mintBtn = document.getElementById('mintBtn');
+                if (!mintActive) {
+                    mintBtn.disabled = true;
+                    mintBtn.textContent = "Mint 未开启";
+                } else if (hasMinted) {
+                    mintBtn.disabled = true;
+                    mintBtn.textContent = "已 Mint";
+                } else if (mintedSlots >= totalMintSlots) {
+                    mintBtn.disabled = true;
+                    mintBtn.textContent = "Mint 已满";
+                } else {
+                    mintBtn.disabled = false;
+                    mintBtn.textContent = `Mint (${ethers.utils.formatEther(mintPrice)} BNB)`;
+                }
+            } catch (error) {
+                showStatus("刷新失败: " + error.message, "error");
+            }
+        }
+
+        async function mint() {
+            try {
+                showStatus("正在 Mint...", "warning");
+                
+                const mintPrice = await contract.mintPrice();
+                const tx = await contract.mint({ value: mintPrice });
+                
+                showStatus("交易已提交，等待确认...", "warning");
+                await tx.wait();
+
+                showStatus("Mint 成功！", "success");
+                await refreshInfo();
+            } catch (error) {
+                showStatus("Mint 失败: " + error.message, "error");
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = "status " + type;
+        }
+
+        // 页面加载时自动连接钱包
+        window.onload = function() {
+            if (window.ethereum) {
+                document.getElementById('connectBtn').style.display = 'block';
+            } else {
+                showStatus("请安装 MetaMask 或 Trust Wallet", "error");
+            }
+        };
+    </script>
+</body>
+</html>
