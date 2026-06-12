@@ -200,30 +200,54 @@
         .wallet-select {
             display: flex;
             gap: 10px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
         .wallet-select-btn {
             flex: 1;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
+            padding: 14px;
+            border: none;
             border-radius: 10px;
-            background: white;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 15px;
+            font-weight: 600;
             transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 8px;
+            color: white;
         }
-        .wallet-select-btn:hover { border-color: #667eea; background: #f8f9ff; }
-        .wallet-select-btn.active { border-color: #667eea; background: #f0f2ff; color: #667eea; }
+        .wallet-select-btn.metamask {
+            background: linear-gradient(135deg, #FF6B35, #E85D04);
+        }
+        .wallet-select-btn.metamask:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(232, 93, 4, 0.4);
+        }
+        .wallet-select-btn.trust {
+            background: linear-gradient(135deg, #3375BB, #1A6DFF);
+        }
+        .wallet-select-btn.trust:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(26, 109, 255, 0.4);
+        }
+        .wallet-select-btn.active {
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.3);
+        }
         .wallet-detect-info {
             text-align: center;
             font-size: 12px;
             color: #888;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
+        }
+        .wallet-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .loading {
             display: inline-block;
@@ -237,6 +261,82 @@
             vertical-align: middle;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .dividend-section {
+            background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 20px;
+        }
+        .dividend-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .dividend-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #856404;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .dividend-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #856404;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        .dividend-amount small {
+            font-size: 14px;
+            font-weight: 500;
+            color: #b8860b;
+        }
+        .dividend-detail {
+            font-size: 12px;
+            color: #b8860b;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .btn-claim {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            color: white;
+        }
+        .btn-claim:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 193, 7, 0.5);
+        }
+        .btn-claim:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .tax-info {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .tax-badge {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .tax-badge.buy { background: #e3f2fd; color: #1565c0; }
+        .tax-badge.sell { background: #fce4ec; color: #c62828; }
         #mintInfo { display: none; }
         #setupPanel { display: block; }
     </style>
@@ -251,12 +351,13 @@
 
         <!-- 第一步：输入合约地址（无 URL 参数时显示） -->
         <div id="setupPanel">
+            <div class="wallet-label">🔗 钱包连接</div>
             <div class="wallet-detect-info" id="walletDetectInfo"></div>
             <div class="wallet-select" id="walletSelectGroup">
-                <button class="wallet-select-btn active" id="walletMM" onclick="selectWallet('metamask')">
+                <button class="wallet-select-btn metamask" id="walletMM" onclick="selectWallet('metamask')">
                     🦊 MetaMask
                 </button>
-                <button class="wallet-select-btn" id="walletTW" onclick="selectWallet('trustwallet')">
+                <button class="wallet-select-btn trust" id="walletTW" onclick="selectWallet('trustwallet')">
                     🛡️ Trust Wallet
                 </button>
             </div>
@@ -279,12 +380,13 @@
 
         <!-- 有 URL 参数时直接显示连接按钮（无需手动输入） -->
         <div id="quickConnectPanel" style="display:none;">
+            <div class="wallet-label">🔗 钱包连接</div>
             <div class="wallet-detect-info" id="quickWalletDetectInfo"></div>
             <div class="wallet-select" id="quickWalletSelectGroup">
-                <button class="wallet-select-btn active" id="quickWalletMM" onclick="selectWallet('metamask')">
+                <button class="wallet-select-btn metamask" id="quickWalletMM" onclick="selectWallet('metamask')">
                     🦊 MetaMask
                 </button>
-                <button class="wallet-select-btn" id="quickWalletTW" onclick="selectWallet('trustwallet')">
+                <button class="wallet-select-btn trust" id="quickWalletTW" onclick="selectWallet('trustwallet')">
                     🛡️ Trust Wallet
                 </button>
             </div>
@@ -338,6 +440,11 @@
                 </div>
             </div>
 
+            <div class="tax-info">
+                <div class="tax-badge buy">📉 买入税 <span id="buyTaxDisplay">-</span></div>
+                <div class="tax-badge sell">📈 卖出税 <span id="sellTaxDisplay">-</span></div>
+            </div>
+
             <div class="progress-wrap">
                 <div class="progress-bar">
                     <div class="progress-fill" id="progressFill" style="width:0%;"></div>
@@ -348,6 +455,23 @@
             <button class="btn btn-primary" id="mintBtn" onclick="doMint()">
                 Mint
             </button>
+
+            <!-- 分红领取区域 -->
+            <div class="dividend-section">
+                <div class="dividend-header">
+                    <div class="dividend-title">💰 持币分红</div>
+                    <button style="background:none; border:none; cursor:pointer; font-size:16px; color:#b8860b;" onclick="refreshDividend()" title="刷新分红">🔄</button>
+                </div>
+                <div class="dividend-amount">
+                    <span id="dividendAmount">0.0000</span>
+                    <small>BNB</small>
+                </div>
+                <div class="dividend-detail" id="dividendDetail">查询中...</div>
+                <button class="btn-claim" id="claimBtn" onclick="doClaimDividend()" disabled>
+                    💰 领取分红
+                </button>
+            </div>
+
             <button class="btn btn-secondary" onclick="refreshInfo()">
                 🔄 刷新
             </button>
@@ -379,7 +503,19 @@
             "function hasMinted(address) view returns (bool)",
             "function balanceOf(address) view returns (uint256)",
             "function name() view returns (string)",
-            "function symbol() view returns (string)"
+            "function symbol() view returns (string)",
+            "function dividendOf(address) view returns (uint256)",
+            "function claimDividend()",
+            "function dividendDistributor() view returns (address)",
+            "function buyTax() view returns (uint256)",
+            "function sellTax() view returns (uint256)"
+        ];
+
+        // 分红合约 ABI（用于直接查询未领取分红）
+        const DIVIDEND_ABI = [
+            "function getClaimableDividend(address) view returns (uint256)",
+            "function totalDividend() view returns (uint256)",
+            "function distributedAmount() view returns (uint256)"
         ];
 
         // ============ 钱包检测与选择 ============
@@ -439,8 +575,12 @@
         function updateWalletBtns() {
             const mmBtns = [document.getElementById('walletMM'), document.getElementById('quickWalletMM')];
             const twBtns = [document.getElementById('walletTW'), document.getElementById('quickWalletTW')];
-            mmBtns.forEach(btn => { if (btn) btn.className = 'wallet-select-btn' + (selectedWallet === 'metamask' ? ' active' : ''); });
-            twBtns.forEach(btn => { if (btn) btn.className = 'wallet-select-btn' + (selectedWallet === 'trustwallet' ? ' active' : ''); });
+            mmBtns.forEach(btn => {
+                if (btn) btn.classList.toggle('active', selectedWallet === 'metamask');
+            });
+            twBtns.forEach(btn => {
+                if (btn) btn.classList.toggle('active', selectedWallet === 'trustwallet');
+            });
         }
 
         // 获取指定钱包的 provider
@@ -716,7 +856,7 @@
 
         async function refreshInfo() {
             try {
-                const [mintActive, mintPrice, mintCount, mintedSlots, totalMintSlots, hasMinted, bnbBal, tokenName] =
+                const [mintActive, mintPrice, mintCount, mintedSlots, totalMintSlots, hasMinted, bnbBal, tokenName, buyTaxVal, sellTaxVal] =
                     await Promise.all([
                         contract.mintActive(),
                         contract.mintPrice(),
@@ -725,7 +865,9 @@
                         contract.totalMintSlots(),
                         contract.hasMinted(userAddress),
                         provider.getBalance(userAddress),
-                        contract.name().catch(() => '')
+                        contract.name().catch(() => ''),
+                        contract.buyTax().catch(() => 0),
+                        contract.sellTax().catch(() => 0)
                     ]);
 
                 if (tokenName) {
@@ -741,6 +883,10 @@
                 document.getElementById('totalSlots').textContent = totalMintSlots.toString();
                 document.getElementById('bnbBalance').textContent =
                     parseFloat(ethers.utils.formatEther(bnbBal)).toFixed(4);
+
+                // 显示税率
+                document.getElementById('buyTaxDisplay').textContent = (buyTaxVal / 100).toFixed(1) + '%';
+                document.getElementById('sellTaxDisplay').textContent = (sellTaxVal / 100).toFixed(1) + '%';
 
                 const pct = totalMintSlots > 0 ? (mintedSlots * 100 / totalMintSlots) : 0;
                 document.getElementById('progressFill').style.width = pct.toFixed(1) + '%';
@@ -760,8 +906,89 @@
                     mintBtn.disabled = false;
                     mintBtn.textContent = '💎 Mint (' + ethers.utils.formatEther(mintPrice) + ' BNB)';
                 }
+
+                // 刷新分红信息
+                refreshDividend();
             } catch (err) {
                 showStatus('加载合约信息失败: ' + (err.reason || err.message), 'error');
+            }
+        }
+
+        // ============ 分红相关 ============
+
+        let dividendContract = null; // 独立分红合约实例
+
+        async function refreshDividend() {
+            try {
+                // 获取可领取分红金额（通过主合约查询）
+                const dividendAmt = await contract.dividendOf(userAddress);
+                const dividendBNB = parseFloat(ethers.utils.formatEther(dividendAmt));
+
+                document.getElementById('dividendAmount').textContent = dividendBNB.toFixed(6);
+
+                const claimBtn = document.getElementById('claimBtn');
+                if (dividendBNB > 0) {
+                    claimBtn.disabled = false;
+                    claimBtn.textContent = '💰 领取 ' + dividendBNB.toFixed(6) + ' BNB';
+                } else {
+                    claimBtn.disabled = true;
+                    claimBtn.textContent = '💰 暂无可领取分红';
+                }
+
+                // 获取更多分红详情
+                try {
+                    const distributorAddr = await contract.dividendDistributor();
+                    dividendContract = new ethers.Contract(distributorAddr, DIVIDEND_ABI, signer);
+
+                    const [totalDiv, distributed] = await Promise.all([
+                        dividendContract.totalDividend().catch(() => ethers.BigNumber.from(0)),
+                        dividendContract.distributedAmount().catch(() => ethers.BigNumber.from(0))
+                    ]);
+
+                    const totalBNB = parseFloat(ethers.utils.formatEther(totalDiv));
+                    const distBNB = parseFloat(ethers.utils.formatEther(distributed));
+                    document.getElementById('dividendDetail').textContent =
+                        '池总分红: ' + totalBNB.toFixed(4) + ' BNB | 已分配: ' + distBNB.toFixed(4) + ' BNB';
+                } catch (detailErr) {
+                    document.getElementById('dividendDetail').textContent = '持币即可获得 BNB 分红';
+                }
+            } catch (err) {
+                document.getElementById('dividendAmount').textContent = '0.0000';
+                document.getElementById('dividendDetail').textContent = '分红信息暂不可用';
+                document.getElementById('claimBtn').disabled = true;
+                document.getElementById('claimBtn').textContent = '💰 暂无可领取分红';
+            }
+        }
+
+        async function doClaimDividend() {
+            try {
+                const claimBtn = document.getElementById('claimBtn');
+                claimBtn.disabled = true;
+                claimBtn.innerHTML = '<span class="loading"></span>领取中...';
+                showStatus('请在钱包中确认分红领取交易...', 'warning');
+
+                const tx = await contract.claimDividend();
+
+                showStatus('交易已提交，等待链上确认...', 'warning');
+                await tx.wait();
+
+                showStatus('🎉 分红领取成功！BNB 已到账', 'success');
+                // 刷新余额和分红
+                const bnbBal = await provider.getBalance(userAddress);
+                document.getElementById('bnbBalance').textContent =
+                    parseFloat(ethers.utils.formatEther(bnbBal)).toFixed(4);
+                await refreshDividend();
+            } catch (err) {
+                let msg = err.reason || err.message || '未知错误';
+                if (msg.includes('user rejected')) {
+                    msg = '交易已取消';
+                } else if (msg.includes('No dividend')) {
+                    msg = '暂无可领取的分红';
+                }
+                showStatus('分红领取失败: ' + msg, 'error');
+                const claimBtn = document.getElementById('claimBtn');
+                claimBtn.disabled = false;
+                claimBtn.textContent = '💰 重试领取';
             }
         }
 
