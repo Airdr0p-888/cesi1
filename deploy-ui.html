@@ -345,14 +345,21 @@
             <div class="icon icon-wallet">&#x1F517;</div>
             钱包连接
         </div>
-        <button class="btn btn-wallet" id="connectWalletBtn" onclick="connectWallet()">
-            连接 MetaMask / Trust Wallet
-        </button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-wallet" id="connectMetaMaskBtn" onclick="connectWallet('metamask')">
+                🦊 MetaMask
+            </button>
+            <button class="btn btn-wallet" id="connectTrustBtn" onclick="connectWallet('trustwallet')" style="background:linear-gradient(135deg,#3375BB,#1A6DFF);">
+                🛡️ Trust Wallet
+            </button>
+        </div>
+        <div id="walletDetectInfo" style="margin-top:10px; font-size:0.8em; color:#888;"></div>
         <div class="wallet-info" id="walletInfo" style="display:none;">
             <div>已连接地址：</div>
             <div class="wallet-address" id="walletAddress"></div>
             <div class="wallet-balance" id="walletBalance"></div>
             <div class="wallet-network" id="walletNetwork"></div>
+            <button class="btn btn-sm btn-primary" style="margin-top:8px;" onclick="updateWalletInfo()">刷新余额</button>
         </div>
     </div>
 
@@ -598,22 +605,69 @@
 
     // ============ 钱包连接 ============
 
-    async function connectWallet() {
+    // 检测可用钱包
+    function detectWallets() {
+        const info = document.getElementById('walletDetectInfo');
+        if (typeof window.ethereum === 'undefined') {
+            info.innerHTML = '⚠️ 未检测到任何钱包扩展，请安装 MetaMask 或 Trust Wallet';
+            return;
+        }
+        const detected = [];
+        if (window.ethereum.isMetaMask) detected.push('🦊 MetaMask');
+        if (window.ethereum.isTrust || window.ethereum.isTrustWallet) detected.push('🛡️ Trust Wallet');
+        // 通用检测
+        if (detected.length === 0) detected.push('🔗 未知钱包 (' + (window.ethereum.constructor?.name || 'ethereum') + ')');
+        info.innerHTML = '检测到钱包：' + detected.join('、');
+    }
+    detectWallets();
+
+    async function connectWallet(walletType) {
         if (typeof window.ethereum === 'undefined') {
             alert('请先安装 MetaMask 或 Trust Wallet 浏览器扩展！');
             return;
         }
 
         try {
-            provider = new ethers.providers.Web3Provider(window.ethereum);
+            let ethereumProvider = window.ethereum;
+
+            // 如果同时安装了多个钱包，优先使用指定的钱包
+            if (walletType === 'metamask' && window.ethereum.providers) {
+                const mm = window.ethereum.providers.find(p => p.isMetaMask);
+                if (mm) ethereumProvider = mm;
+            } else if (walletType === 'trustwallet' && window.ethereum.providers) {
+                const tw = window.ethereum.providers.find(p => p.isTrust || p.isTrustWallet);
+                if (tw) ethereumProvider = tw;
+            }
+
+            provider = new ethers.providers.Web3Provider(ethereumProvider);
             await provider.send("eth_requestAccounts", []);
             signer = provider.getSigner();
             connectedAddress = await signer.getAddress();
 
+            // 检测实际连接的是哪个钱包
+            const isMM = ethereumProvider.isMetaMask;
+            const isTW = ethereumProvider.isTrust || ethereumProvider.isTrustWallet;
+            const walletLabel = isTW ? 'Trust Wallet' : isMM ? 'MetaMask' : '未知钱包';
+
+            // 自动同步页面网络下拉框到钱包当前网络
+            const network = await provider.getNetwork();
+            const walletChainId = Number(network.chainId);
+            const networkSelect = document.getElementById('network');
+            if (walletChainId === 56 || walletChainId === 97) {
+                networkSelect.value = String(walletChainId);
+                // 同步更新 Router 地址
+                document.getElementById('routerAddress').value =
+                    walletChainId === 56
+                        ? '0x10ED43C718714eb63d5aA57B78B54704E256024E'
+                        : '0xD99D1c33F9fC3444f8101754aBC4685d767e4074';
+            }
+
             // 更新UI
-            document.getElementById('connectWalletBtn').textContent = '已连接 ✓';
-            document.getElementById('connectWalletBtn').disabled = true;
-            document.getElementById('connectWalletBtn').style.opacity = '0.6';
+            document.getElementById('connectMetaMaskBtn').style.display = 'none';
+            document.getElementById('connectTrustBtn').style.display = 'none';
+            document.getElementById('walletDetectInfo').innerHTML =
+                '✅ 已连接 <b>' + walletLabel + '</b>' +
+                (window.ethereum.providers ? ' (如需切换钱包，请刷新页面重选)' : '');
             document.getElementById('walletInfo').style.display = 'block';
             document.getElementById('walletAddress').textContent = connectedAddress;
             document.getElementById('deployBtn').disabled = false;
@@ -623,8 +677,8 @@
             await updateWalletInfo();
 
             // 监听账户和网络变化
-            window.ethereum.on('accountsChanged', () => window.location.reload());
-            window.ethereum.on('chainChanged', () => window.location.reload());
+            ethereumProvider.on('accountsChanged', () => window.location.reload());
+            ethereumProvider.on('chainChanged', () => window.location.reload());
 
         } catch (err) {
             console.error('连接钱包失败:', err);
@@ -634,21 +688,33 @@
 
     async function updateWalletInfo() {
         if (!provider || !connectedAddress) return;
-        const balance = await provider.getBalance(connectedAddress);
-        const network = await provider.getNetwork();
+        try {
+            const balance = await provider.getBalance(connectedAddress);
+            const network = await provider.getNetwork();
 
-        document.getElementById('walletBalance').textContent =
-            '余额: ' + ethers.utils.formatEther(balance) + ' BNB';
+            const bnbStr = ethers.utils.formatEther(balance);
+            // 显示完整精度余额（最多6位小数）
+            const displayBalance = parseFloat(bnbStr) < 0.000001 && balance.gt(0)
+                ? bnbStr + ' (极小)'
+                : parseFloat(bnbStr).toFixed(6).replace(/\.?0+$/, '') || '0';
+            document.getElementById('walletBalance').textContent =
+                '余额: ' + displayBalance + ' BNB';
 
-        const chainNames = { 56: 'BSC 主网', 97: 'BSC 测试网' };
-        const chainName = chainNames[network.chainId] || ('Chain ID: ' + network.chainId);
-        document.getElementById('walletNetwork').textContent = '网络: ' + chainName;
+            const chainId = Number(network.chainId);
+            const chainNames = { 56: 'BSC 主网', 97: 'BSC 测试网' };
+            const chainName = chainNames[chainId] || ('Chain ID: ' + chainId);
+            document.getElementById('walletNetwork').textContent = '网络: ' + chainName + ' (Chain ID: ' + chainId + ')';
 
-        // 如果当前网络与选择不匹配，提示切换
-        const selectedChainId = parseInt(document.getElementById('network').value);
-        if (network.chainId !== selectedChainId) {
-            document.getElementById('walletNetwork').textContent += ' (请切换网络!)';
-            document.getElementById('walletNetwork').style.color = '#ff6b6b';
+            // 如果当前网络与选择不匹配，提示切换
+            const selectedChainId = parseInt(document.getElementById('network').value);
+            if (chainId !== selectedChainId) {
+                document.getElementById('walletNetwork').textContent += ' ⚠️ 请切换网络!';
+                document.getElementById('walletNetwork').style.color = '#ff6b6b';
+            } else {
+                document.getElementById('walletNetwork').style.color = '#00d4aa';
+            }
+        } catch (err) {
+            document.getElementById('walletBalance').textContent = '余额查询失败: ' + err.message;
         }
     }
 
@@ -825,6 +891,36 @@
     async function deployContract() {
         if (!signer) {
             alert('请先连接钱包！');
+            return;
+        }
+
+        // 检查钱包网络是否与页面选择一致
+        try {
+            const network = await provider.getNetwork();
+            const walletChainId = Number(network.chainId);
+            const selectedChainId = parseInt(document.getElementById('network').value);
+            if (walletChainId !== selectedChainId) {
+                const names = { 56: 'BSC 主网', 97: 'BSC 测试网' };
+                alert('网络不匹配！\n\n钱包当前网络: ' + (names[walletChainId] || 'Chain ' + walletChainId) +
+                    '\n页面选择网络: ' + (names[selectedChainId] || 'Chain ' + selectedChainId) +
+                    '\n\n请先切换钱包网络或修改页面网络选择。');
+                return;
+            }
+        } catch (e) {
+            console.warn('网络检查失败:', e);
+        }
+
+        // 检查 Router 地址是否与当前网络匹配
+        const currentRouter = document.getElementById('routerAddress').value.toLowerCase();
+        const mainnetRouter = '0x10ED43C718714eb63d5aA57B78B54704E256024E'.toLowerCase();
+        const testnetRouter = '0xD99D1c33F9fC3444f8101754aBC4685d767e4074'.toLowerCase();
+        const selectedChainId = parseInt(document.getElementById('network').value);
+        if (selectedChainId === 97 && currentRouter === mainnetRouter) {
+            alert('Router 地址是主网的，但你要部署到测试网！\n\n请将 Router 地址改为测试网的：\n0xD99D1c33F9fC3444f8101754aBC4685d767e4074');
+            return;
+        }
+        if (selectedChainId === 56 && currentRouter === testnetRouter) {
+            alert('Router 地址是测试网的，但你要部署到主网！\n\n请将 Router 地址改为主网的：\n0x10ED43C718714eb63d5aA57B78B54704E256024E');
             return;
         }
 
