@@ -845,6 +845,14 @@
     let tokenContract, dividendContract;
     let tokenAddr, dividendAddr;
 
+    // 地址校验工具：规范化 checksum， reject 非法地址
+    function safeAddr(input, fieldName) {
+        const val = (input || '').trim();
+        if (!val) throw new Error(fieldName + '：地址不能为空');
+        if (val.length !== 42 || !val.startsWith('0x')) throw new Error(fieldName + '：地址格式不正确');
+        return ethers.utils.getAddress(val);
+    }
+
     // ============ ABI ============
 
     const TOKEN_ABI = [
@@ -1038,17 +1046,18 @@
     async function loadContract() {
         if (!signer) { alert('请先连接钱包！'); return; }
 
-        tokenAddr = document.getElementById('contractAddress').value.trim();
-        if (!tokenAddr || !tokenAddr.startsWith('0x')) {
+        const rawAddr = document.getElementById('contractAddress').value.trim();
+        if (!rawAddr || !rawAddr.startsWith('0x')) {
             alert('请输入有效的合约地址！');
             return;
         }
+        tokenAddr = safeAddr(rawAddr, '合约地址');
 
         try {
             tokenContract = new ethers.Contract(tokenAddr, TOKEN_ABI, signer);
             // 验证合约是否存在
             const owner = await tokenContract.owner();
-            dividendAddr = await tokenContract.dividendDistributor();
+            dividendAddr = safeAddr(await tokenContract.dividendDistributor(), '分红合约地址');
             dividendContract = new ethers.Contract(dividendAddr, DIVIDEND_ABI, signer);
 
             document.getElementById('dashboardCard').style.display = 'block';
@@ -1252,8 +1261,8 @@
     }
 
     async function setMarketingWallet() {
-        const addr = document.getElementById('newMarketingWallet').value.trim();
-        if (!addr || !addr.startsWith('0x')) { alert('请输入有效地址！'); return; }
+        const rawAddr = document.getElementById('newMarketingWallet').value.trim();
+        const addr = safeAddr(rawAddr, '营销钱包地址');
         await adminCall('setMarketingWallet', [addr]);
     }
 
@@ -1267,8 +1276,8 @@
     // ============ 白名单 ============
 
     async function checkWhitelist() {
-        const addr = document.getElementById('checkWlAddr').value.trim();
-        if (!addr || !addr.startsWith('0x')) { alert('请输入有效地址！'); return; }
+        const rawAddr = document.getElementById('checkWlAddr').value.trim();
+        const addr = safeAddr(rawAddr, '查询地址');
         try {
             const [isWl, hasMinted] = await Promise.all([
                 tokenContract.whitelist(addr),
@@ -1283,14 +1292,14 @@
 
     async function addWhitelist() {
         const text = document.getElementById('wlAddAddresses').value.trim();
-        const addrs = text.split('\n').map(a => a.trim()).filter(a => a.startsWith('0x') && a.length >= 42);
+        const addrs = text.split('\n').map(a => a.trim()).filter(a => a.startsWith('0x') && a.length >= 42).map(a => safeAddr(a, '白名单地址'));
         if (addrs.length === 0) { alert('请输入至少一个有效地址！'); return; }
         await adminCall('setWhitelist', [addrs, true]);
     }
 
     async function removeWhitelist() {
         const text = document.getElementById('wlRemoveAddresses').value.trim();
-        const addrs = text.split('\n').map(a => a.trim()).filter(a => a.startsWith('0x') && a.length >= 42);
+        const addrs = text.split('\n').map(a => a.trim()).filter(a => a.startsWith('0x') && a.length >= 42).map(a => safeAddr(a, '白名单地址'));
         if (addrs.length === 0) { alert('请输入至少一个有效地址！'); return; }
         await adminCall('setWhitelist', [addrs, false]);
     }
@@ -1298,7 +1307,8 @@
     // ============ 紧急提取 ============
 
     async function rescueBNB() {
-        const to = document.getElementById('rescueBnbTo').value.trim() || connectedAddress;
+        const toRaw = document.getElementById('rescueBnbTo').value.trim() || connectedAddress;
+        const to = safeAddr(toRaw, '接收地址');
         const amount = document.getElementById('rescueBnbAmount').value.trim();
         if (!amount) { alert('请输入金额！'); return; }
         const weiAmount = ethers.utils.parseEther(amount);
@@ -1306,18 +1316,20 @@
     }
 
     async function rescueToken() {
-        const tokenAddr = document.getElementById('rescueTokenAddr').value.trim();
-        const to = document.getElementById('rescueTokenTo').value.trim() || connectedAddress;
+        const tokenAddrRaw = document.getElementById('rescueTokenAddr').value.trim();
+        const tokenAddr = safeAddr(tokenAddrRaw, '代币地址');
+        const toRaw = document.getElementById('rescueTokenTo').value.trim() || connectedAddress;
+        const to = safeAddr(toRaw, '接收地址');
         const amount = document.getElementById('rescueTokenAmount').value.trim();
-        if (!tokenAddr || !amount) { alert('请填写完整信息！'); return; }
+        if (!amount) { alert('请输入金额！'); return; }
         await adminCall('rescueToken', [tokenAddr, to, ethers.BigNumber.from(amount)]);
     }
 
     // ============ 分红合约 ============
 
     async function checkDividend() {
-        const addr = document.getElementById('divCheckAddr').value.trim();
-        if (!addr || !addr.startsWith('0x')) { alert('请输入有效地址！'); return; }
+        const rawAddr = document.getElementById('divCheckAddr').value.trim();
+        const addr = safeAddr(rawAddr, '持币人地址');
         try {
             const [claimable, info] = await Promise.all([
                 dividendContract.getClaimableDividend(addr),
@@ -1332,13 +1344,14 @@
     }
 
     async function setDividendAdmin() {
-        const addr = document.getElementById('newDivAdmin').value.trim();
-        if (!addr || !addr.startsWith('0x')) { alert('请输入有效地址！'); return; }
+        const rawAddr = document.getElementById('newDivAdmin').value.trim();
+        const addr = safeAddr(rawAddr, '新 Admin 地址');
         await dividendCall('setAdmin', [addr]);
     }
 
     async function dividendRescueBNB() {
-        const to = document.getElementById('divRescueBnbTo').value.trim() || connectedAddress;
+        const toRaw = document.getElementById('divRescueBnbTo').value.trim() || connectedAddress;
+        const to = safeAddr(toRaw, '接收地址');
         const amount = document.getElementById('divRescueBnbAmount').value.trim();
         if (!amount) { alert('请输入金额！'); return; }
         const weiAmount = ethers.utils.parseEther(amount);
@@ -1346,10 +1359,12 @@
     }
 
     async function dividendRescueToken() {
-        const tokenAddr = document.getElementById('divRescueTokenAddr').value.trim();
-        const to = document.getElementById('divRescueTokenTo').value.trim() || connectedAddress;
+        const tokenAddrRaw = document.getElementById('divRescueTokenAddr').value.trim();
+        const tokenAddr = safeAddr(tokenAddrRaw, '代币地址');
+        const toRaw = document.getElementById('divRescueTokenTo').value.trim() || connectedAddress;
+        const to = safeAddr(toRaw, '接收地址');
         const amount = document.getElementById('divRescueTokenAmount').value.trim();
-        if (!tokenAddr || !amount) { alert('请填写完整信息！'); return; }
+        if (!amount) { alert('请输入金额！'); return; }
         await dividendCall('rescueToken', [tokenAddr, to, ethers.BigNumber.from(amount)]);
     }
 
@@ -1361,8 +1376,8 @@
     // ============ 权限管理 ============
 
     async function transferOwnership() {
-        const addr = document.getElementById('newOwnerAddr').value.trim();
-        if (!addr || !addr.startsWith('0x')) { alert('请输入有效地址！'); return; }
+        const rawAddr = document.getElementById('newOwnerAddr').value.trim();
+        const addr = safeAddr(rawAddr, '新 Owner 地址');
         if (!confirm(`确认将主合约所有权转移给 ${addr}？此操作不可逆！`)) return;
         await adminCall('transferOwnership', [addr]);
     }

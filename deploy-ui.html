@@ -537,13 +537,13 @@
             <div class="form-group">
                 <label>网络</label>
                 <select id="network" onchange="switchNetwork()">
+                    <option value="97" selected>BSC 测试网</option>
                     <option value="56">BSC 主网</option>
-                    <option value="97">BSC 测试网</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Router 地址</label>
-                <input type="text" id="routerAddress" value="0x10ED43C718714eb63d5aA57B78B54704E256024E">
+                <input type="text" id="routerAddress" value="0xD99D1c33F9fC3444f8101754aBC46c52416550D1">
             </div>
             <div class="form-group">
                 <label>营销钱包地址</label>
@@ -659,7 +659,7 @@
                 document.getElementById('routerAddress').value =
                     walletChainId === 56
                         ? '0x10ED43C718714eb63d5aA57B78B54704E256024E'
-                        : '0xD99D1c33F9fC3444f8101754aBC4685d767e4074';
+                        : '0xD99D1c33F9fC3444f8101754aBC46c52416550D1';
             }
 
             // 更新UI
@@ -725,7 +725,7 @@
         if (chainId === 56) {
             document.getElementById('routerAddress').value = '0x10ED43C718714eb63d5aA57B78B54704E256024E';
         } else {
-            document.getElementById('routerAddress').value = '0xD99D1c33F9fC3444f8101754aBC4685d767e4074';
+            document.getElementById('routerAddress').value = '0xD99D1c33F9fC3444f8101754aBC46c52416550D1';
         }
 
         if (!window.ethereum) return;
@@ -913,10 +913,10 @@
         // 检查 Router 地址是否与当前网络匹配
         const currentRouter = document.getElementById('routerAddress').value.toLowerCase();
         const mainnetRouter = '0x10ED43C718714eb63d5aA57B78B54704E256024E'.toLowerCase();
-        const testnetRouter = '0xD99D1c33F9fC3444f8101754aBC4685d767e4074'.toLowerCase();
+        const testnetRouter = '0xD99D1c33F9fC3444f8101754aBC46c52416550D1'.toLowerCase();
         const selectedChainId = parseInt(document.getElementById('network').value);
         if (selectedChainId === 97 && currentRouter === mainnetRouter) {
-            alert('Router 地址是主网的，但你要部署到测试网！\n\n请将 Router 地址改为测试网的：\n0xD99D1c33F9fC3444f8101754aBC4685d767e4074');
+            alert('Router 地址是主网的，但你要部署到测试网！\n\n请将 Router 地址改为测试网的：\n0xD99D1c33F9fC3444f8101754aBC46c52416550D1');
             return;
         }
         if (selectedChainId === 56 && currentRouter === testnetRouter) {
@@ -953,8 +953,10 @@
             const totalSupply = ethers.utils.parseUnits(
                 (getTotalSupplyRaw()).toString(), 18
             );
-            const router = document.getElementById('routerAddress').value;
-            const marketingWallet = document.getElementById('marketingWallet').value || connectedAddress;
+            // 地址参数必须 checksum 规范化，否则 ethers v5 报错 "bad address checksum"
+            const router = ethers.utils.getAddress(document.getElementById('routerAddress').value);
+            const marketingWalletRaw = document.getElementById('marketingWallet').value || connectedAddress;
+            const marketingWallet = ethers.utils.getAddress(marketingWalletRaw);
             const modeMap = { auto: 0, manual: 1, timed: 2 };
             const openMode = modeMap[currentOpenMode];
 
@@ -995,7 +997,11 @@
             if (whitelistEnabled) {
                 const wlText = document.getElementById('whitelistAddresses').value.trim();
                 if (wlText) {
-                    const wlAddresses = wlText.split('\n').map(a => a.trim()).filter(a => a.startsWith('0x'));
+                    const wlAddresses = wlText.split('\n').map(a => {
+                        const addr = a.trim();
+                        if (!addr.startsWith('0x')) return addr;
+                        return ethers.utils.getAddress(addr); // checksum 规范化
+                    }).filter(a => a.length === 42);
                     if (wlAddresses.length > 0) {
                         setStatus('正在设置白名单（请在钱包中确认）...', 'info');
                         const tx3 = await contract.setWhitelist(wlAddresses, true);
