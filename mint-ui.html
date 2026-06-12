@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FairMint - Mint 页面</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
@@ -24,107 +24,57 @@
             width: 100%;
             padding: 40px;
         }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .back-link:hover { text-decoration: underline; }
         h1 {
             text-align: center;
             color: #333;
-            margin-bottom: 10px;
-            font-size: 28px;
+            margin-bottom: 8px;
+            font-size: 26px;
         }
         .subtitle {
             text-align: center;
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
             font-size: 14px;
         }
         .status {
-            padding: 15px;
+            padding: 14px 18px;
             border-radius: 10px;
             margin-bottom: 20px;
             text-align: center;
             font-weight: 500;
+            font-size: 14px;
         }
-        .status.info {
-            background: #e3f2fd;
-            color: #1976d2;
-        }
-        .status.success {
-            background: #e8f5e9;
-            color: #2e7d32;
-        }
-        .status.error {
-            background: #ffebee;
-            color: #c62828;
-        }
-        .status.warning {
-            background: #fff3e0;
-            color: #e65100;
-        }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        .info-item {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 10px;
-        }
-        .info-label {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        .info-value {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-        }
-        .btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 10px;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.5);
-        }
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .btn-secondary {
-            background: #f5f5f5;
-            color: #333;
-        }
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
+        .status.info { background: #e3f2fd; color: #1565c0; }
+        .status.success { background: #e8f5e9; color: #2e7d32; }
+        .status.error { background: #ffebee; color: #c62828; }
+        .status.warning { background: #fff3e0; color: #e65100; }
         .input-group {
             margin-bottom: 20px;
         }
         .input-group label {
             display: block;
             margin-bottom: 8px;
-            color: #333;
+            color: #555;
             font-weight: 500;
+            font-size: 14px;
         }
         .input-group input {
             width: 100%;
             padding: 12px 15px;
             border: 2px solid #e0e0e0;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 15px;
+            font-family: monospace;
             transition: border-color 0.3s;
         }
         .input-group input:focus {
@@ -137,38 +87,141 @@
             border-radius: 10px;
             margin-bottom: 20px;
             font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .wallet-address {
             font-family: monospace;
             color: #667eea;
             word-break: break-all;
         }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .info-item {
+            background: #f8f9fa;
+            padding: 14px;
+            border-radius: 10px;
+        }
+        .info-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .info-value {
+            font-size: 17px;
+            font-weight: 600;
+            color: #333;
+        }
+        .progress-wrap {
+            margin-bottom: 24px;
+        }
         .progress-bar {
             width: 100%;
-            height: 10px;
+            height: 8px;
             background: #e0e0e0;
-            border-radius: 5px;
+            border-radius: 4px;
             overflow: hidden;
-            margin: 20px 0;
         }
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            transition: width 0.3s;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s ease;
+            border-radius: 4px;
         }
+        .progress-text {
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #555;
+        }
+        .btn-secondary:hover { background: #e8e8e8; }
+        .btn-outline {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        .btn-outline:hover { background: #667eea; color: white; }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #mintInfo { display: none; }
+        #setupPanel { display: block; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 FairMint</h1>
-        <div class="subtitle">公平 Mint 代币</div>
+        <a href="index.html" class="back-link">← 返回首页</a>
+        <h1>🚀 Mint 代币</h1>
+        <div class="subtitle">连接钱包，参与公平 Mint</div>
 
-        <div id="status" class="status info">正在连接钱包...</div>
+        <div id="status" class="status" style="display:none;"></div>
 
-        <div id="mintInfo" style="display: none;">
+        <!-- 第一步：输入合约地址 -->
+        <div id="setupPanel">
+            <div class="input-group">
+                <label>合约地址</label>
+                <input type="text" id="contractInput" placeholder="0x..." 
+                       value="" spellcheck="false" autocomplete="off">
+            </div>
+            <button class="btn btn-primary" id="connectBtn" onclick="startConnect()">
+                连接钱包并加载
+            </button>
+        </div>
+
+        <!-- 第二步：Mint 信息面板 -->
+        <div id="mintInfo">
             <div class="wallet-info">
-                <div>钱包地址: <span id="walletAddress" class="wallet-address"></span></div>
-                <div style="margin-top: 5px;">BNB 余额: <span id="bnbBalance"></span> BNB</div>
+                <div>
+                    <span style="color:#888;">钱包</span><br>
+                    <span id="walletAddress" class="wallet-address"></span>
+                </div>
+                <div style="text-align:right;">
+                    <span style="color:#888;">BNB</span><br>
+                    <span id="bnbBalance" style="font-weight:600;">-</span>
+                </div>
             </div>
 
             <div class="info-grid">
@@ -190,29 +243,24 @@
                 </div>
             </div>
 
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
-            </div>
-            <div style="text-align: center; color: #666; margin-bottom: 20px;">
-                进度: <span id="progressText">0</span>%
+            <div class="progress-wrap">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width:0%;"></div>
+                </div>
+                <div class="progress-text">进度: <span id="progressText">0</span>%</div>
             </div>
 
-            <button class="btn btn-primary" id="connectBtn" onclick="connectWallet()" style="display: none;">
-                连接钱包
+            <button class="btn btn-primary" id="mintBtn" onclick="doMint()">
+                Mint
             </button>
-            <button class="btn btn-primary" id="mintBtn" onclick="mint()" style="display: none;">
-                Mint (0.01 BNB)
-            </button>
-            <button class="btn btn-secondary" id="refreshBtn" onclick="refreshInfo()" style="display: none;">
-                刷新信息
+            <button class="btn btn-secondary" onclick="refreshInfo()">
+                🔄 刷新
             </button>
         </div>
     </div>
 
     <script>
         let provider, signer, contract, userAddress;
-        let contractAddress = new URLSearchParams(window.location.search).get('contract') || 
-                            prompt("请输入合约地址:", "");
 
         const ABI = [
             "function mint() payable",
@@ -222,48 +270,73 @@
             "function mintedSlots() view returns (uint256)",
             "function totalMintSlots() view returns (uint256)",
             "function hasMinted(address) view returns (bool)",
-            "function balanceOf(address) view returns (uint256)"
+            "function balanceOf(address) view returns (uint256)",
+            "function name() view returns (string)",
+            "function symbol() view returns (string)"
         ];
 
-        async function connectWallet() {
-            try {
-                if (!window.ethereum) {
-                    showStatus("请安装 MetaMask 或 Trust Wallet", "error");
-                    return;
-                }
+        // 从 URL 参数自动填充合约地址
+        (function() {
+            const addr = new URLSearchParams(window.location.search).get('contract');
+            if (addr) document.getElementById('contractInput').value = addr;
+        })();
 
-                showStatus("正在连接钱包...", "info");
+        function showStatus(msg, type) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = 'status ' + type;
+            el.style.display = 'block';
+        }
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+
+        async function startConnect() {
+            if (!window.ethereum) {
+                showStatus('请安装 MetaMask 或 Trust Wallet', 'error');
+                return;
+            }
+
+            const addr = document.getElementById('contractInput').value.trim();
+            if (!addr || !addr.startsWith('0x') || addr.length !== 42) {
+                showStatus('请输入有效的合约地址（42位，0x开头）', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('connectBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>连接中...';
+
+            try {
+                showStatus('正在连接钱包...', 'info');
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
+
                 provider = new ethers.providers.Web3Provider(window.ethereum);
                 signer = provider.getSigner();
                 userAddress = await signer.getAddress();
 
-                if (!contractAddress) {
-                    showStatus("请输入合约地址", "error");
-                    return;
-                }
+                const contractAddr = ethers.utils.getAddress(addr); // 校验 checksum
+                contract = new ethers.Contract(contractAddr, ABI, signer);
 
-                contract = new ethers.Contract(contractAddress, ABI, signer);
+                document.getElementById('walletAddress').textContent =
+                    userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
 
-                document.getElementById('walletAddress').textContent = 
-                    userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
-                
-                await refreshInfo();
+                // 切换面板
+                document.getElementById('setupPanel').style.display = 'none';
                 document.getElementById('mintInfo').style.display = 'block';
-                document.getElementById('connectBtn').style.display = 'none';
-                document.getElementById('mintBtn').style.display = 'block';
-                document.getElementById('refreshBtn').style.display = 'block';
 
-                showStatus("钱包连接成功！", "success");
-            } catch (error) {
-                showStatus("连接失败: " + error.message, "error");
+                await refreshInfo();
+                hideStatus();
+            } catch (err) {
+                showStatus('连接失败: ' + (err.reason || err.message), 'error');
+                btn.disabled = false;
+                btn.textContent = '连接钱包并加载';
             }
         }
 
         async function refreshInfo() {
             try {
-                const [mintActive, mintPrice, mintCount, mintedSlots, totalMintSlots, hasMinted, bnbBalance] = 
+                const [mintActive, mintPrice, mintCount, mintedSlots, totalMintSlots, hasMinted, bnbBal, tokenName] =
                     await Promise.all([
                         contract.mintActive(),
                         contract.mintPrice(),
@@ -271,74 +344,69 @@
                         contract.mintedSlots(),
                         contract.totalMintSlots(),
                         contract.hasMinted(userAddress),
-                        provider.getBalance(userAddress)
+                        provider.getBalance(userAddress),
+                        contract.name().catch(() => '')
                     ]);
 
-                document.getElementById('mintPrice').textContent = 
-                    ethers.utils.formatEther(mintPrice) + " BNB";
-                document.getElementById('mintCount').textContent = 
-                    ethers.utils.formatEther(mintCount);
-                document.getElementById('mintedSlots').textContent = 
-                    mintedSlots.toString() + " / " + totalMintSlots.toString();
+                if (tokenName) {
+                    document.querySelector('h1').textContent = '🚀 ' + tokenName;
+                }
+
+                document.getElementById('mintPrice').textContent =
+                    parseFloat(ethers.utils.formatEther(mintPrice)).toFixed(4) + ' BNB';
+                document.getElementById('mintCount').textContent =
+                    parseFloat(ethers.utils.formatEther(mintCount)).toLocaleString();
+                document.getElementById('mintedSlots').textContent =
+                    mintedSlots.toString() + ' / ' + totalMintSlots.toString();
                 document.getElementById('totalSlots').textContent = totalMintSlots.toString();
-                document.getElementById('bnbBalance').textContent = 
-                    parseFloat(ethers.utils.formatEther(bnbBalance)).toFixed(4);
+                document.getElementById('bnbBalance').textContent =
+                    parseFloat(ethers.utils.formatEther(bnbBal)).toFixed(4);
 
-                const progress = (mintedSlots * 100 / totalMintSlots).toString();
-                document.getElementById('progressFill').style.width = progress + "%";
-                document.getElementById('progressText').textContent = progress;
+                const pct = totalMintSlots > 0 ? (mintedSlots * 100 / totalMintSlots) : 0;
+                document.getElementById('progressFill').style.width = pct.toFixed(1) + '%';
+                document.getElementById('progressText').textContent = pct.toFixed(1);
 
-                // 更新 mint 按钮
                 const mintBtn = document.getElementById('mintBtn');
                 if (!mintActive) {
                     mintBtn.disabled = true;
-                    mintBtn.textContent = "Mint 未开启";
+                    mintBtn.textContent = '⛔ Mint 未开启';
                 } else if (hasMinted) {
                     mintBtn.disabled = true;
-                    mintBtn.textContent = "已 Mint";
-                } else if (mintedSlots >= totalMintSlots) {
+                    mintBtn.textContent = '✅ 已 Mint';
+                } else if (mintedSlots.gte(totalMintSlots)) {
                     mintBtn.disabled = true;
-                    mintBtn.textContent = "Mint 已满";
+                    mintBtn.textContent = '🎉 Mint 已满';
                 } else {
                     mintBtn.disabled = false;
-                    mintBtn.textContent = `Mint (${ethers.utils.formatEther(mintPrice)} BNB)`;
+                    mintBtn.textContent = '💎 Mint (' + ethers.utils.formatEther(mintPrice) + ' BNB)';
                 }
-            } catch (error) {
-                showStatus("刷新失败: " + error.message, "error");
+            } catch (err) {
+                showStatus('加载合约信息失败: ' + (err.reason || err.message), 'error');
             }
         }
 
-        async function mint() {
+        async function doMint() {
             try {
-                showStatus("正在 Mint...", "warning");
-                
-                const mintPrice = await contract.mintPrice();
-                const tx = await contract.mint({ value: mintPrice });
-                
-                showStatus("交易已提交，等待确认...", "warning");
+                const mintBtn = document.getElementById('mintBtn');
+                mintBtn.disabled = true;
+                mintBtn.innerHTML = '<span class="loading"></span>Mint 中...';
+                showStatus('请在钱包中确认交易...', 'warning');
+
+                const price = await contract.mintPrice();
+                const tx = await contract.mint({ value: price });
+
+                showStatus('交易已提交，等待链上确认...', 'warning');
                 await tx.wait();
 
-                showStatus("Mint 成功！", "success");
+                showStatus('🎉 Mint 成功！代币已到账', 'success');
                 await refreshInfo();
-            } catch (error) {
-                showStatus("Mint 失败: " + error.message, "error");
+            } catch (err) {
+                showStatus('Mint 失败: ' + (err.reason || err.message), 'error');
+                const mintBtn = document.getElementById('mintBtn');
+                mintBtn.disabled = false;
+                mintBtn.textContent = '💎 重试 Mint';
             }
         }
-
-        function showStatus(message, type) {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = "status " + type;
-        }
-
-        // 页面加载时自动连接钱包
-        window.onload = function() {
-            if (window.ethereum) {
-                document.getElementById('connectBtn').style.display = 'block';
-            } else {
-                showStatus("请安装 MetaMask 或 Trust Wallet", "error");
-            }
-        };
     </script>
 </body>
 </html>

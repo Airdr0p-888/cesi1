@@ -425,6 +425,9 @@
             <button class="btn btn-sm btn-primary" style="margin-left:auto;" onclick="refreshDashboard()">刷新</button>
         </div>
         <div class="dash-grid" id="dashGrid"></div>
+        <button class="btn btn-block" style="margin-top:12px; background:linear-gradient(135deg,#4facfe,#00f2fe); color:#fff; font-weight:600;" onclick="generateDedicatedMintPage()">
+            📥 生成专属 Mint 页面
+        </button>
     </div>
 
     <!-- 功能面板 -->
@@ -1407,6 +1410,170 @@
 
     // ============ 初始化 ============
     updateNewTaxDist();
-</script>
+
+    // ============ 生成专属 Mint 页面 ============
+    function generateDedicatedMintPage() {
+        if (!tokenContract || !tokenAddr) {
+            showStatus('请先加载合约', 'error');
+            return;
+        }
+        // 异步获取代币信息后生成
+        (async () => {
+            try {
+                const name = await tokenContract.name();
+                const symbol = await tokenContract.symbol();
+                const chainId = parseInt(document.getElementById('network').value);
+                const isMainnet = chainId === 56;
+                const explorerBase = isMainnet ? 'https://bscscan.com' : 'https://testnet.bscscan.com';
+                const chainName = isMainnet ? 'BSC Mainnet' : 'BSC Testnet';
+
+                const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>${name} - Mint</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"><\/script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.container{background:#fff;border-radius:24px;box-shadow:0 25px 80px rgba(0,0,0,.3);max-width:460px;width:100%;padding:40px 32px}
+.header{text-align:center;margin-bottom:28px}
+.header h1{font-size:24px;color:#1a1a2e;margin-bottom:4px}
+.header .symbol{color:#667eea;font-weight:700}
+.header .chain{font-size:12px;color:#999;margin-top:4px}
+.status{padding:12px 16px;border-radius:10px;margin-bottom:18px;text-align:center;font-weight:500;font-size:13px}
+.status.info{background:#e3f2fd;color:#1565c0}
+.status.success{background:#e8f5e9;color:#2e7d32}
+.status.error{background:#ffebee;color:#c62828}
+.status.warning{background:#fff3e0;color:#e65100}
+.wallet-bar{background:#f5f6fa;border-radius:12px;padding:14px 16px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.wallet-bar .addr{font-family:monospace;color:#667eea}
+.wallet-bar .bal{font-weight:600;color:#333}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.info-item{background:#f8f9fb;padding:14px;border-radius:10px}
+.info-label{font-size:11px;color:#999;margin-bottom:3px}
+.info-value{font-size:16px;font-weight:600;color:#1a1a2e}
+.prog-wrap{margin-bottom:22px}
+.prog-bar{width:100%;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:4px;transition:width .5s}
+.prog-text{text-align:center;color:#999;font-size:12px;margin-top:5px}
+.btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;transition:all .3s;margin-bottom:8px}
+.btn-mint{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.btn-mint:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 20px rgba(102,126,234,.4)}
+.btn-mint:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-refresh{background:#f5f6fa;color:#666}
+.btn-refresh:hover{background:#e8e8e8}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.explorer{display:block;text-align:center;margin-top:16px;font-size:12px;color:#999;text-decoration:none}
+.explorer:hover{color:#667eea}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🚀 <span class="symbol">${name}</span></h1>
+    <div class="chain">${symbol} · ${chainName}</div>
+  </div>
+  <div id="status" class="status" style="display:none"></div>
+  <div id="connectPanel">
+    <button class="btn btn-mint" id="connectBtn" onclick="connectAndLoad()">💎 连接钱包参与 Mint</button>
+  </div>
+  <div id="mintPanel" style="display:none">
+    <div class="wallet-bar">
+      <div><span style="color:#999">钱包</span><br><span id="addr" class="addr"></span></div>
+      <div style="text-align:right"><span style="color:#999">BNB</span><br><span id="bal" class="bal">-</span></div>
+    </div>
+    <div class="info-grid">
+      <div class="info-item"><div class="info-label">Mint 价格</div><div class="info-value" id="vPrice">-</div></div>
+      <div class="info-item"><div class="info-label">每份代币</div><div class="info-value" id="vCount">-</div></div>
+      <div class="info-item"><div class="info-label">已 Mint</div><div class="info-value" id="vMinted">-</div></div>
+      <div class="info-item"><div class="info-label">总份数</div><div class="info-value" id="vTotal">-</div></div>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div class="prog-text">进度 <span id="progText">0</span>%</div>
+    </div>
+    <button class="btn btn-mint" id="mintBtn" onclick="doMint()">💎 Mint</button>
+    <button class="btn btn-refresh" onclick="refresh()">🔄 刷新</button>
+  </div>
+  <a class="explorer" href="${explorerBase}/address/${tokenAddr}" target="_blank">在 BSCScan 查看合约 →</a>
+</div>
+<script>
+const CONTRACT='${tokenAddr}';
+const ABI=["function mint() payable","function mintActive() view returns (bool)","function mintPrice() view returns (uint256)","function mintCount() view returns (uint256)","function mintedSlots() view returns (uint256)","function totalMintSlots() view returns (uint256)","function hasMinted(address) view returns (bool)","function balanceOf(address) view returns (uint256)"];
+let P,S,C,U;
+function showMsg(m,t){const e=document.getElementById('status');e.textContent=m;e.className='status '+t;e.style.display='block'}
+function hideMsg(){document.getElementById('status').style.display='none'}
+async function connectAndLoad(){
+  if(!window.ethereum){showMsg('请安装 MetaMask 或 Trust Wallet','error');return}
+  try{
+    showMsg('正在连接钱包...','info');
+    await window.ethereum.request({method:'eth_requestAccounts'});
+    P=new ethers.providers.Web3Provider(window.ethereum);
+    S=P.getSigner();U=await S.getAddress();
+    C=new ethers.Contract(CONTRACT,ABI,S);
+    document.getElementById('addr').textContent=U.slice(0,6)+'...'+U.slice(-4);
+    document.getElementById('connectPanel').style.display='none';
+    document.getElementById('mintPanel').style.display='block';
+    await refresh();hideMsg();
+  }catch(e){showMsg('连接失败: '+(e.reason||e.message),'error')}
+}
+async function refresh(){
+  try{
+    const[a,pr,cnt,done,total,claimed,bal]=await Promise.all([
+      C.mintActive(),C.mintPrice(),C.mintCount(),C.mintedSlots(),C.totalMintSlots(),
+      C.hasMinted(U),P.getBalance(U)
+    ]);
+    document.getElementById('vPrice').textContent=parseFloat(ethers.utils.formatEther(pr)).toFixed(4)+' BNB';
+    document.getElementById('vCount').textContent=parseFloat(ethers.utils.formatEther(cnt)).toLocaleString();
+    document.getElementById('vMinted').textContent=done.toString()+' / '+total.toString();
+    document.getElementById('vTotal').textContent=total.toString();
+    document.getElementById('bal').textContent=parseFloat(ethers.utils.formatEther(bal)).toFixed(4);
+    const pct=total>0?(done*100/total):0;
+    document.getElementById('progFill').style.width=pct.toFixed(1)+'%';
+    document.getElementById('progText').textContent=pct.toFixed(1);
+    const b=document.getElementById('mintBtn');
+    if(!a){b.disabled=true;b.textContent='⛔ Mint 未开启'}
+    else if(claimed){b.disabled=true;b.textContent='✅ 已 Mint'}
+    else if(done.gte(total)){b.disabled=true;b.textContent='🎉 Mint 已满'}
+    else{b.disabled=false;b.textContent='💎 Mint ('+ethers.utils.formatEther(pr)+' BNB)'}
+  }catch(e){showMsg('加载失败: '+(e.reason||e.message),'error')}
+}
+async function doMint(){
+  try{
+    const b=document.getElementById('mintBtn');b.disabled=true;
+    b.innerHTML='<span class="spinner"></span>Mint 中...';
+    showMsg('请在钱包中确认交易...','warning');
+    const pr=await C.mintPrice();
+    const tx=await C.mint({value:pr});
+    showMsg('交易已提交，等待确认...','warning');
+    await tx.wait();
+    showMsg('🎉 Mint 成功！代币已到账','success');
+    await refresh();
+  }catch(e){
+    showMsg('Mint 失败: '+(e.reason||e.message),'error');
+    document.getElementById('mintBtn').disabled=false;
+    document.getElementById('mintBtn').textContent='💎 重试 Mint';
+  }
+}
+<\/script>
+</body>
+</html>`;
+
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = symbol.toLowerCase() + '-mint.html';
+                a.click();
+                URL.revokeObjectURL(url);
+                showStatus('✅ 专属 Mint 页面已下载', 'success');
+            } catch (err) {
+                showStatus('生成失败: ' + (err.reason || err.message), 'error');
+            }
+        })();
+    }
 </body>
 </html>
