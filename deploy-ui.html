@@ -495,28 +495,28 @@
                 <div class="form-group">
                     <label>营销钱包</label>
                     <div class="slider-group">
-                        <input type="range" id="marketingShare" min="0" max="100" value="40" oninput="updateTaxDist()">
+                        <input type="range" id="marketingShare" min="0" max="100" value="40" oninput="updateTaxDist('marketingShare')">
                         <span class="slider-value" id="marketingValue">40%</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>销毁</label>
                     <div class="slider-group">
-                        <input type="range" id="burnShare" min="0" max="100" value="10" oninput="updateTaxDist()">
+                        <input type="range" id="burnShare" min="0" max="100" value="10" oninput="updateTaxDist('burnShare')">
                         <span class="slider-value" id="burnValue">10%</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>持币分红</label>
                     <div class="slider-group">
-                        <input type="range" id="dividendShare" min="0" max="100" value="30" oninput="updateTaxDist()">
+                        <input type="range" id="dividendShare" min="0" max="100" value="30" oninput="updateTaxDist('dividendShare')">
                         <span class="slider-value" id="dividendValue">30%</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>回流 LP</label>
                     <div class="slider-group">
-                        <input type="range" id="lpShare" min="0" max="100" value="20" oninput="updateTaxDist()">
+                        <input type="range" id="lpShare" min="0" max="100" value="20" oninput="updateTaxDist('lpShare')">
                         <span class="slider-value" id="lpValue">20%</span>
                     </div>
                 </div>
@@ -806,17 +806,33 @@
         updatePreview();
     }
 
-    function updateTaxDist() {
-        const m = parseInt(document.getElementById('marketingShare').value);
-        const b = parseInt(document.getElementById('burnShare').value);
-        const d = parseInt(document.getElementById('dividendShare').value);
-        const l = parseInt(document.getElementById('lpShare').value);
-        const total = m + b + d + l;
+    function updateTaxDist(changedId) {
+        const ids = ['marketingShare', 'burnShare', 'dividendShare', 'lpShare'];
+        const values = {};
+        ids.forEach(id => { values[id] = parseInt(document.getElementById(id).value); });
 
-        document.getElementById('marketingValue').textContent = m + '%';
-        document.getElementById('burnValue').textContent = b + '%';
-        document.getElementById('dividendValue').textContent = d + '%';
-        document.getElementById('lpValue').textContent = l + '%';
+        // 计算当前滑块之外的其他滑块总和
+        const otherTotal = ids.reduce((sum, id) => id === changedId ? sum : sum + values[id], 0);
+
+        // 如果当前滑块导致总和超过100，自动钳制到最大允许值
+        if (changedId && values[changedId] + otherTotal > 100) {
+            const clamped = 100 - otherTotal;
+            values[changedId] = Math.max(0, clamped);
+            document.getElementById(changedId).value = values[changedId];
+        }
+
+        // 动态更新每个滑块的 max，防止拖过头
+        ids.forEach(id => {
+            const otherSum = ids.reduce((sum, oid) => oid === id ? sum : sum + values[oid], 0);
+            document.getElementById(id).max = 100 - otherSum;
+        });
+
+        const total = ids.reduce((sum, id) => sum + values[id], 0);
+
+        document.getElementById('marketingValue').textContent = values['marketingShare'] + '%';
+        document.getElementById('burnValue').textContent = values['burnShare'] + '%';
+        document.getElementById('dividendValue').textContent = values['dividendShare'] + '%';
+        document.getElementById('lpValue').textContent = values['lpShare'] + '%';
 
         const error = document.getElementById('taxDistError');
         if (total !== 100) {

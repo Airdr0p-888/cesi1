@@ -560,29 +560,29 @@
                     <div class="form-group">
                         <label>营销</label>
                         <div class="slider-group">
-                            <input type="range" id="newMarketingShare" min="0" max="100" value="40" oninput="updateNewTaxDist()">
-                            <span class="slider-value" id="newMarketingVal">40%</span>
-                        </div>
+                        <input type="range" id="newMarketingShare" min="0" max="100" value="40" oninput="updateNewTaxDist('newMarketingShare')">
+                        <span class="slider-value" id="newMarketingVal">40%</span>
                     </div>
-                    <div class="form-group">
-                        <label>销毁</label>
-                        <div class="slider-group">
-                            <input type="range" id="newBurnShare" min="0" max="100" value="10" oninput="updateNewTaxDist()">
-                            <span class="slider-value" id="newBurnVal">10%</span>
-                        </div>
+                </div>
+                <div class="form-group">
+                    <label>销毁</label>
+                    <div class="slider-group">
+                        <input type="range" id="newBurnShare" min="0" max="100" value="10" oninput="updateNewTaxDist('newBurnShare')">
+                        <span class="slider-value" id="newBurnVal">10%</span>
                     </div>
-                    <div class="form-group">
-                        <label>持币分红</label>
-                        <div class="slider-group">
-                            <input type="range" id="newDividendShare" min="0" max="100" value="30" oninput="updateNewTaxDist()">
-                            <span class="slider-value" id="newDividendVal">30%</span>
-                        </div>
+                </div>
+                <div class="form-group">
+                    <label>持币分红</label>
+                    <div class="slider-group">
+                        <input type="range" id="newDividendShare" min="0" max="100" value="30" oninput="updateNewTaxDist('newDividendShare')">
+                        <span class="slider-value" id="newDividendVal">30%</span>
                     </div>
-                    <div class="form-group">
-                        <label>回流 LP</label>
-                        <div class="slider-group">
-                            <input type="range" id="newLpShare" min="0" max="100" value="20" oninput="updateNewTaxDist()">
-                            <span class="slider-value" id="newLpVal">20%</span>
+                </div>
+                <div class="form-group">
+                    <label>回流 LP</label>
+                    <div class="slider-group">
+                        <input type="range" id="newLpShare" min="0" max="100" value="20" oninput="updateNewTaxDist('newLpShare')">
+                        <span class="slider-value" id="newLpVal">20%</span>
                         </div>
                     </div>
                 </div>
@@ -1229,20 +1229,35 @@
 
     // ============ 税收管理 ============
 
-    function updateNewTaxDist() {
-        const m = parseInt(document.getElementById('newMarketingShare').value);
-        const b = parseInt(document.getElementById('newBurnShare').value);
-        const d = parseInt(document.getElementById('newDividendShare').value);
-        const l = parseInt(document.getElementById('newLpShare').value);
-        document.getElementById('newMarketingVal').textContent = m + '%';
-        document.getElementById('newBurnVal').textContent = b + '%';
-        document.getElementById('newDividendVal').textContent = d + '%';
-        document.getElementById('newLpVal').textContent = l + '%';
+    function updateNewTaxDist(changedId) {
+        const ids = ['newMarketingShare', 'newBurnShare', 'newDividendShare', 'newLpShare'];
+        const valIds = ['newMarketingVal', 'newBurnVal', 'newDividendVal', 'newLpVal'];
+        const values = {};
+        ids.forEach(id => { values[id] = parseInt(document.getElementById(id).value); });
 
+        // 如果当前滑块导致总和超过100，自动钳制
+        const otherTotal = ids.reduce((sum, id) => id === changedId ? sum : sum + values[id], 0);
+        if (changedId && values[changedId] + otherTotal > 100) {
+            const clamped = 100 - otherTotal;
+            values[changedId] = Math.max(0, clamped);
+            document.getElementById(changedId).value = values[changedId];
+        }
+
+        // 动态更新每个滑块的 max
+        ids.forEach(id => {
+            const otherSum = ids.reduce((sum, oid) => oid === id ? sum : sum + values[oid], 0);
+            document.getElementById(id).max = 100 - otherSum;
+        });
+
+        ids.forEach((id, i) => {
+            document.getElementById(valIds[i]).textContent = values[id] + '%';
+        });
+
+        const total = ids.reduce((sum, id) => sum + values[id], 0);
         const err = document.getElementById('newTaxDistError');
-        if (m + b + d + l !== 100) {
+        if (total !== 100) {
             err.style.display = 'block';
-            err.textContent = '合计 ' + (m+b+d+l) + '%，必须为 100%';
+            err.textContent = '合计 ' + total + '%，必须为 100%';
         } else {
             err.style.display = 'none';
         }
